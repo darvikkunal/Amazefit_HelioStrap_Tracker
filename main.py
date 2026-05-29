@@ -6,6 +6,19 @@ import os
 
 app = FastAPI()
 
+@app.get("/")
+def root():
+    return {
+        "service": "health-parser-api",
+        "status": "healthy"
+    }
+
+@app.get("/health")
+def health():
+    return {
+        "status": "ok"
+    }
+
 def get_value(cursor, sql):
     try:
         cursor.execute(sql)
