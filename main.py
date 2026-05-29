@@ -124,5 +124,8 @@ async def extract(zip_file: UploadFile = File(...)):
             results[key] = get_value(cur, sql)
 
         conn.close()
-
+        
+        from datetime import date
+        
+        results["report_date"] = str(date.today())
         return results
