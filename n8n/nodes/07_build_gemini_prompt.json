@@ -1,0 +1,11 @@
+{
+  "parameters": {
+    "mode": "runOnceForAllItems",
+    "language": "javaScript",
+    "jsCode": "const d = $input.first().json;\nconst reportDate = d.report_date ? d.report_date.toString().substring(0, 10) : 'N/A';\nconst sleepQualityMap = { 1: 'Excellent', 2: 'Good', 3: 'Fair', 4: 'Poor', 5: 'Very Poor' };\nconst sleepQualityLabel = d.sleep_quality ? (sleepQualityMap[d.sleep_quality] ?? d.sleep_quality) : 'N/A';\nconst prompt = `You are Kunal's personal health coach. Analyze today's biometric data from his Amazfit Helio Strap and provide an intelligent daily health summary.\n\n\ud83d\udcc5 Date: ${reportDate}\n\n\ud83d\udcca TODAY'S METRICS:\n- Steps: ${d.steps ?? 'N/A'}\n- Calories burned: ${d.calories ?? 'N/A'} kcal\n- Resting Heart Rate: ${d.resting_hr ?? 'N/A'} bpm\n- Avg Workout HR: ${d.workout_avg_hr ?? 'N/A'} bpm\n- HRV (RMSSD): ${d.hrv_avg ?? 'N/A'} ms\n- SpO\u2082: ${d.spo2_avg ?? 'N/A'}%\n- Weight: ${d.weight ?? 'N/A'} kg\n- Training Load (ATL): ${d.atl ? Math.round(d.atl) : 'N/A'}\n\n\ud83c\udfcb\ufe0f WORKOUTS TODAY (${d.workout_count ?? 0} sessions):\n${d.workout_names ?? 'Rest day'}\n\n\ud83d\ude34 SLEEP LAST NIGHT:\n- Total sleep: ${d.sleep_hours ?? 'N/A'} hours\n- Sleep score: ${d.sleep_score ?? 'N/A'}/100\n- Sleep quality: ${sleepQualityLabel}\n\nProvide a friendly, concise health summary in exactly this structure:\n\n1. \ud83c\udf05 OVERALL STATUS (2 sentences)\n2. \ud83d\udcaa WHAT'S GOOD (1-2 specific positive observations)\n3. \u26a0\ufe0f WATCH OUT (1 thing that needs attention)\n4. \ud83c\udfaf ACTION FOR TODAY (1 clear recommendation)\n5. \ud83d\ude34 SLEEP INSIGHT (brief comment on sleep quality and score)\n\nKeep total response under 200 words. Use the exact emojis shown. Be specific with numbers. Speak directly to Kunal.`;\nreturn [{ json: { prompt, ...d } }];"
+  },
+  "name": "Build Gemini Prompt",
+  "type": "n8n-nodes-base.code",
+  "typeVersion": 2,
+  "notes": "Formats all health data into a structured AI prompt for Gemini 2.5 Flash."
+}
