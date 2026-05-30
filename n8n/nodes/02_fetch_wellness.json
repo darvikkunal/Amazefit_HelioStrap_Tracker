@@ -1,0 +1,18 @@
+{
+  "parameters": {
+    "method": "GET",
+    "url": "=https://intervals.icu/api/v1/athlete/i598416/wellness/{{ $now.minus({days: 1}).toFormat('yyyy-MM-dd') }}",
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpBasicAuth",
+    "options": {}
+  },
+  "name": "Fetch Intervals Wellness",
+  "type": "n8n-nodes-base.httpRequest",
+  "typeVersion": 4.4,
+  "credentials": {
+    "httpBasicAuth": {
+      "name": "Intervals.icu API"
+    }
+  },
+  "notes": "GET yesterday's wellness data from Intervals.icu. Returns restingHR, hrv, sleepSecs, steps, etc."
+}
