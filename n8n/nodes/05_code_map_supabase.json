@@ -1,0 +1,11 @@
+{
+  "parameters": {
+    "mode": "runOnceForAllItems",
+    "language": "javaScript",
+    "jsCode": "const all = $input.all();\nconst wellness = all[0].json;\nconst activities = all.slice(1).map(i => i.json);\n\nlet totalCalories = 0;\nlet avgHRSum = 0;\nlet avgHRCount = 0;\nconst workoutNames = [];\n\nfor (const act of activities) {\n  if (act.calories)          totalCalories += act.calories;\n  if (act.average_heartrate) {\n    avgHRSum   += act.average_heartrate;\n    avgHRCount += 1;\n  }\n  if (act.name) workoutNames.push(`${act.name} (${act.type})`);\n}\n\nconst sleepHours = wellness.sleepSecs\n  ? Math.round((wellness.sleepSecs / 3600) * 100) / 100\n  : null;\n\nreturn [{\n  json: {\n    report_date:     wellness.id,\n    steps:           wellness.steps        ?? null,\n    resting_hr:      wellness.restingHR    ?? null,\n    hrv_avg:         wellness.hrv          ?? null,\n    hrv_min:         null,\n    hrv_max:         null,\n    spo2_avg:        wellness.spO2         ?? null,\n    spo2_min:        null,\n    sleep_hours:     sleepHours,\n    sleep_deep_min:  null,\n    sleep_rem_min:   null,\n    sleep_light_min: null,\n    sleep_awake_min: null,\n    calories:        totalCalories         || null,\n    distance_km:     null,\n    resp_rate:       wellness.respiration  ?? null,\n    sleep_score:     wellness.sleepScore   ?? null,\n    sleep_quality:   wellness.sleepQuality ?? null,\n    weight:          wellness.weight       ?? null,\n    workout_count:   activities.length,\n    workout_names:   workoutNames.join(', ') || 'Rest day',\n    workout_avg_hr:  avgHRCount > 0 ? Math.round(avgHRSum / avgHRCount) : null,\n    atl:             wellness.atl          ?? null,\n    atl_load:        wellness.atlLoad      ?? null\n  }\n}];"
+  },
+  "name": "Code in JavaScript",
+  "type": "n8n-nodes-base.code",
+  "typeVersion": 2,
+  "notes": "Combines wellness + activities into one Supabase-ready object. item[0]=wellness, items[1..N]=activities."
+}
