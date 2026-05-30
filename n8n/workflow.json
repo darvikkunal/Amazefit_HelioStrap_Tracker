@@ -1,0 +1,308 @@
+{
+  "name": "Kunal Health Tracker",
+  "nodes": [
+    {
+      "id": "node-01-schedule-trigger",
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300]
+    },
+    {
+      "id": "node-02-fetch-wellness",
+      "parameters": {
+        "method": "GET",
+        "url": "=https://intervals.icu/api/v1/athlete/i598416/wellness/{{ $now.minus({days: 1}).toFormat('yyyy-MM-dd') }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "options": {}
+      },
+      "name": "Fetch Intervals Wellness",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [100, 500]
+    },
+    {
+      "id": "node-03-fetch-activities",
+      "parameters": {
+        "method": "GET",
+        "url": "=https://intervals.icu/api/v1/athlete/i598416/activities?oldest={{ $now.minus({days: 1}).toFormat('yyyy-MM-dd') }}&newest={{ $now.minus({days: 1}).toFormat('yyyy-MM-dd') }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "options": {}
+      },
+      "name": "Fetch Activities",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [400, 500]
+    },
+    {
+      "id": "node-04-merge",
+      "parameters": {
+        "mode": "append",
+        "options": {}
+      },
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [250, 700]
+    },
+    {
+      "id": "node-05-code-map-supabase",
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const all = $input.all();\nconst wellness = all[0].json;\nconst activities = all.slice(1).map(i => i.json);\n\nlet totalCalories = 0;\nlet avgHRSum = 0;\nlet avgHRCount = 0;\nconst workoutNames = [];\n\nfor (const act of activities) {\n  if (act.calories)          totalCalories += act.calories;\n  if (act.average_heartrate) {\n    avgHRSum   += act.average_heartrate;\n    avgHRCount += 1;\n  }\n  if (act.name) workoutNames.push(`${act.name} (${act.type})`);\n}\n\nconst sleepHours = wellness.sleepSecs\n  ? Math.round((wellness.sleepSecs / 3600) * 100) / 100\n  : null;\n\nreturn [{\n  json: {\n    report_date:     wellness.id,\n    steps:           wellness.steps        ?? null,\n    resting_hr:      wellness.restingHR    ?? null,\n    hrv_avg:         wellness.hrv          ?? null,\n    hrv_min:         null,\n    hrv_max:         null,\n    spo2_avg:        wellness.spO2         ?? null,\n    spo2_min:        null,\n    sleep_hours:     sleepHours,\n    sleep_deep_min:  null,\n    sleep_rem_min:   null,\n    sleep_light_min: null,\n    sleep_awake_min: null,\n    calories:        totalCalories         || null,\n    distance_km:     null,\n    resp_rate:       wellness.respiration  ?? null,\n    sleep_score:     wellness.sleepScore   ?? null,\n    sleep_quality:   wellness.sleepQuality ?? null,\n    weight:          wellness.weight       ?? null,\n    workout_count:   activities.length,\n    workout_names:   workoutNames.join(', ') || 'Rest day',\n    workout_avg_hr:  avgHRCount > 0 ? Math.round(avgHRSum / avgHRCount) : null,\n    atl:             wellness.atl          ?? null,\n    atl_load:        wellness.atlLoad      ?? null\n  }\n}];"
+      },
+      "name": "Code in JavaScript",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [250, 900]
+    },
+    {
+      "id": "node-06-save-supabase",
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "mode": "list",
+          "value": "daily_health_metrics"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "report_date":    "={{ $json.report_date }}",
+            "steps":          "={{ $json.steps }}",
+            "resting_hr":     "={{ $json.resting_hr }}",
+            "hrv_avg":        "={{ $json.hrv_avg }}",
+            "hrv_min":        "={{ $json.hrv_min }}",
+            "hrv_max":        "={{ $json.hrv_max }}",
+            "spo2_avg":       "={{ $json.spo2_avg }}",
+            "spo2_min":       "={{ $json.spo2_min }}",
+            "sleep_hours":    "={{ $json.sleep_hours }}",
+            "sleep_deep_min": "={{ $json.sleep_deep_min }}",
+            "sleep_rem_min":  "={{ $json.sleep_rem_min }}",
+            "sleep_light_min":"={{ $json.sleep_light_min }}",
+            "sleep_awake_min":"={{ $json.sleep_awake_min }}",
+            "calories":       "={{ $json.calories }}",
+            "distance_km":    "={{ $json.distance_km }}",
+            "resp_rate":      "={{ $json.resp_rate }}",
+            "sleep_score":    "={{ $json.sleep_score }}",
+            "sleep_quality":  "={{ $json.sleep_quality }}",
+            "weight":         "={{ $json.weight }}",
+            "workout_count":  "={{ $json.workout_count }}",
+            "workout_names":  "={{ $json.workout_names }}",
+            "workout_avg_hr": "={{ $json.workout_avg_hr }}",
+            "atl":            "={{ $json.atl }}",
+            "atl_load":       "={{ $json.atl_load }}"
+          },
+          "matchingColumns": ["report_date"]
+        }
+      },
+      "name": "Save to Supabase",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [250, 1100]
+    },
+    {
+      "id": "node-07-build-gemini-prompt",
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const d = $input.first().json;\nconst reportDate = d.report_date ? d.report_date.toString().substring(0, 10) : 'N/A';\nconst sleepQualityMap = { 1: 'Excellent', 2: 'Good', 3: 'Fair', 4: 'Poor', 5: 'Very Poor' };\nconst sleepQualityLabel = d.sleep_quality ? (sleepQualityMap[d.sleep_quality] ?? d.sleep_quality) : 'N/A';\nconst prompt = `You are Kunal's personal health coach. Analyze today's biometric data from his Amazfit Helio Strap and provide an intelligent daily health summary.\n\n\ud83d\udcc5 Date: ${reportDate}\n\n\ud83d\udcca TODAY'S METRICS:\n- Steps: ${d.steps ?? 'N/A'}\n- Calories burned: ${d.calories ?? 'N/A'} kcal\n- Resting Heart Rate: ${d.resting_hr ?? 'N/A'} bpm\n- Avg Workout HR: ${d.workout_avg_hr ?? 'N/A'} bpm\n- HRV (RMSSD): ${d.hrv_avg ?? 'N/A'} ms\n- SpO\u2082: ${d.spo2_avg ?? 'N/A'}%\n- Weight: ${d.weight ?? 'N/A'} kg\n- Training Load (ATL): ${d.atl ? Math.round(d.atl) : 'N/A'}\n\n\ud83c\udfcb\ufe0f WORKOUTS TODAY (${d.workout_count ?? 0} sessions):\n${d.workout_names ?? 'Rest day'}\n\n\ud83d\ude34 SLEEP LAST NIGHT:\n- Total sleep: ${d.sleep_hours ?? 'N/A'} hours\n- Sleep score: ${d.sleep_score ?? 'N/A'}/100\n- Sleep quality: ${sleepQualityLabel}\n\nProvide a friendly, concise health summary in exactly this structure:\n\n1. \ud83c\udf05 OVERALL STATUS (2 sentences)\n2. \ud83d\udcaa WHAT'S GOOD (1-2 specific positive observations)\n3. \u26a0\ufe0f WATCH OUT (1 thing that needs attention)\n4. \ud83c\udfaf ACTION FOR TODAY (1 clear recommendation)\n5. \ud83d\ude34 SLEEP INSIGHT (brief comment on sleep quality and score)\n\nKeep total response under 200 words. Use the exact emojis shown. Be specific with numbers. Speak directly to Kunal.`;\nreturn [{ json: { prompt, ...d } }];"
+      },
+      "name": "Build Gemini Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [250, 1300]
+    },
+    {
+      "id": "node-08-gemini-api",
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=YOUR_GEMINI_API_KEY",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n  contents: [\n    {\n      parts: [\n        {\n          text: $json.prompt\n        }\n      ]\n    }\n  ],\n  generationConfig: {\n    temperature: 0.7,\n    maxOutputTokens: 2048\n  }\n}}",
+        "options": {}
+      },
+      "name": "HTTP Request (Gemini)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [250, 1500]
+    },
+    {
+      "id": "node-09-format-email-telegram",
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const geminiRaw = $input.first().json;\nconst prevData = $('Build Gemini Prompt').first().json;\n\nconst aiText = geminiRaw?.candidates?.[0]?.content?.parts?.[0]?.text ?? 'No summary available';\nconst d = prevData;\nconst reportDate = d.report_date ? d.report_date.toString().substring(0, 10) : 'N/A';\n\nconst sleepQualityMap = { 1: 'Excellent', 2: 'Good', 3: 'Fair', 4: 'Poor', 5: 'Very Poor' };\nconst sleepQualityLabel = d.sleep_quality ? (sleepQualityMap[d.sleep_quality] ?? d.sleep_quality) : '\u2014';\n\nconst htmlEmail = `<!DOCTYPE html><html><body style=\"font-family:-apple-system,Arial,sans-serif;background:#f5f5f5;padding:20px;margin:0\">\n<div style=\"max-width:600px;margin:0 auto;background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1)\">\n  <div style=\"background:linear-gradient(135deg,#1a1a2e,#16213e);color:white;padding:24px;text-align:center\">\n    <h2 style=\"margin:0;font-size:22px\">\ud83c\udfc3 Daily Health Report</h2>\n    <p style=\"margin:4px 0 0;opacity:.7;font-size:13px\">${reportDate} \u00b7 Helio \u2192 Zepp \u2192 Intervals.icu \u2192 Gemini</p>\n  </div>\n  <div style=\"display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:20px\">\n    <div style=\"background:#f8f9fa;border-radius:8px;padding:12px;text-align:center\"><div style=\"font-size:22px;font-weight:700;color:#1a1a2e\">${d.steps ?? '\u2014'}</div><div style=\"font-size:10px;color:#888;margin-top:3px\">STEPS</div></div>\n    <div style=\"background:#f8f9fa;border-radius:8px;padding:12px;text-align:center\"><div style=\"font-size:22px;font-weight:700;color:#1a1a2e\">${d.calories ?? '\u2014'}</div><div style=\"font-size:10px;color:#888;margin-top:3px\">CALORIES</div></div>\n    <div style=\"background:#f8f9fa;border-radius:8px;padding:12px;text-align:center\"><div style=\"font-size:22px;font-weight:700;color:#e63946\">${d.resting_hr ?? '\u2014'}</div><div style=\"font-size:10px;color:#888;margin-top:3px\">RESTING HR</div></div>\n    <div style=\"background:#f8f9fa;border-radius:8px;padding:12px;text-align:center\"><div style=\"font-size:22px;font-weight:700;color:#4361ee\">${d.hrv_avg ?? '\u2014'}</div><div style=\"font-size:10px;color:#888;margin-top:3px\">HRV (ms)</div></div>\n    <div style=\"background:#f8f9fa;border-radius:8px;padding:12px;text-align:center\"><div style=\"font-size:22px;font-weight:700;color:#2a9d8f\">${d.sleep_hours ?? '\u2014'}</div><div style=\"font-size:10px;color:#888;margin-top:3px\">SLEEP HRS</div></div>\n    <div style=\"background:#f8f9fa;border-radius:8px;padding:12px;text-align:center\"><div style=\"font-size:22px;font-weight:700;color:#f4a261\">${d.sleep_score ?? '\u2014'}</div><div style=\"font-size:10px;color:#888;margin-top:3px\">SLEEP SCORE</div></div>\n    <div style=\"background:#f8f9fa;border-radius:8px;padding:12px;text-align:center\"><div style=\"font-size:22px;font-weight:700;color:#1a1a2e\">${d.workout_count ?? 0}</div><div style=\"font-size:10px;color:#888;margin-top:3px\">WORKOUTS</div></div>\n    <div style=\"background:#f8f9fa;border-radius:8px;padding:12px;text-align:center\"><div style=\"font-size:22px;font-weight:700;color:#1a1a2e\">${d.workout_avg_hr ?? '\u2014'}</div><div style=\"font-size:10px;color:#888;margin-top:3px\">AVG HR</div></div>\n    <div style=\"background:#f8f9fa;border-radius:8px;padding:12px;text-align:center\"><div style=\"font-size:22px;font-weight:700;color:#1a1a2e\">${d.weight ?? '\u2014'}</div><div style=\"font-size:10px;color:#888;margin-top:3px\">WEIGHT kg</div></div>\n  </div>\n  ${d.workout_names ? `<div style=\"padding:0 20px 12px\">\n    <div style=\"background:#fff8e7;border-left:3px solid #f4a261;padding:10px 14px;border-radius:0 6px 6px 0;font-size:13px;color:#555\">\n      \ud83c\udfcb\ufe0f <strong>Workouts:</strong> ${d.workout_names}\n    </div>\n  </div>` : ''}\n  <div style=\"padding:0 20px 20px\">\n    <div style=\"background:#f0f4ff;border-left:4px solid #4361ee;padding:16px;border-radius:0 8px 8px 0;font-size:14px;line-height:1.7;color:#333;white-space:pre-wrap\">${aiText}</div>\n  </div>\n  <div style=\"background:#f8f9fa;padding:12px;text-align:center;font-size:11px;color:#aaa\">\n    Amazfit Helio Strap \u2192 Zepp \u2192 Intervals.icu \u2192 n8n \u2192 Gemini \u2192 You\n  </div>\n</div></body></html>`;\n\nconst whatsappMsg = `\ud83c\udfc3 Health Report \u2014 ${reportDate}\n\n\ud83d\udc5f Steps: ${d.steps ?? 'N/A'}\n\ud83d\udd25 Calories: ${d.calories ?? 'N/A'} kcal\n\u2764\ufe0f Resting HR: ${d.resting_hr ?? 'N/A'} bpm\n\ud83e\udde0 HRV: ${d.hrv_avg ?? 'N/A'} ms\n\ud83d\ude34 Sleep: ${d.sleep_hours ?? 'N/A'}h (Score: ${d.sleep_score ?? 'N/A'}/100)\n\ud83c\udfcb\ufe0f Workouts: ${d.workout_count ?? 0} sessions\n\n${aiText}`;\n\nreturn [{ json: { htmlEmail, whatsappMsg, report_date: reportDate } }];"
+      },
+      "name": "Format Email + WhatsApp Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [250, 1700]
+    },
+    {
+      "id": "node-10-send-gmail",
+      "parameters": {
+        "sendTo": "darvikkunal@gmail.com",
+        "subject": "=\ud83c\udfc3 Daily Health Report \u2014 {{ $json.report_date }}",
+        "message": "={{ $json.htmlEmail }}",
+        "options": {}
+      },
+      "name": "Send Gmail Report",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [100, 1900]
+    },
+    {
+      "id": "node-11-send-telegram",
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.telegram.org/botYOUR_BOT_TOKEN/sendMessage",
+        "sendQueryParameters": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "YOUR_CHAT_ID"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.whatsappMsg }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Send Telegram Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [400, 1900]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Intervals Wellness",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Activities",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Intervals Wellness": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Activities": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Save to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Supabase": {
+      "main": [
+        [
+          {
+            "node": "Build Gemini Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Gemini Prompt": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request (Gemini)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request (Gemini)": {
+      "main": [
+        [
+          {
+            "node": "Format Email + WhatsApp Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Email + WhatsApp Message": {
+      "main": [
+        [
+          {
+            "node": "Send Gmail Report",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Telegram Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
