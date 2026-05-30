@@ -1,0 +1,18 @@
+{
+  "parameters": {
+    "method": "GET",
+    "url": "=https://intervals.icu/api/v1/athlete/i598416/activities?oldest={{ $now.minus({days: 1}).toFormat('yyyy-MM-dd') }}&newest={{ $now.minus({days: 1}).toFormat('yyyy-MM-dd') }}",
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpBasicAuth",
+    "options": {}
+  },
+  "name": "Fetch Activities",
+  "type": "n8n-nodes-base.httpRequest",
+  "typeVersion": 4.4,
+  "credentials": {
+    "httpBasicAuth": {
+      "name": "Intervals.icu API"
+    }
+  },
+  "notes": "GET yesterday's workout activities from Intervals.icu. Returns array of workouts with name, calories, avg HR."
+}
