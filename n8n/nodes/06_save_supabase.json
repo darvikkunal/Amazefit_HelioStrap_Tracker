@@ -1,0 +1,47 @@
+{
+  "parameters": {
+    "operation": "upsert",
+    "schema": {
+      "mode": "list",
+      "value": "public"
+    },
+    "table": {
+      "mode": "list",
+      "value": "daily_health_metrics"
+    },
+    "columns": {
+      "mappingMode": "defineBelow",
+      "value": {
+        "report_date":    "={{ $json.report_date }}",
+        "steps":          "={{ $json.steps }}",
+        "resting_hr":     "={{ $json.resting_hr }}",
+        "hrv_avg":        "={{ $json.hrv_avg }}",
+        "hrv_min":        "={{ $json.hrv_min }}",
+        "hrv_max":        "={{ $json.hrv_max }}",
+        "spo2_avg":       "={{ $json.spo2_avg }}",
+        "spo2_min":       "={{ $json.spo2_min }}",
+        "sleep_hours":    "={{ $json.sleep_hours }}",
+        "sleep_deep_min": "={{ $json.sleep_deep_min }}",
+        "sleep_rem_min":  "={{ $json.sleep_rem_min }}",
+        "sleep_light_min":"={{ $json.sleep_light_min }}",
+        "sleep_awake_min":"={{ $json.sleep_awake_min }}",
+        "calories":       "={{ $json.calories }}",
+        "distance_km":    "={{ $json.distance_km }}",
+        "resp_rate":      "={{ $json.resp_rate }}",
+        "sleep_score":    "={{ $json.sleep_score }}",
+        "sleep_quality":  "={{ $json.sleep_quality }}",
+        "weight":         "={{ $json.weight }}",
+        "workout_count":  "={{ $json.workout_count }}",
+        "workout_names":  "={{ $json.workout_names }}",
+        "workout_avg_hr": "={{ $json.workout_avg_hr }}",
+        "atl":            "={{ $json.atl }}",
+        "atl_load":       "={{ $json.atl_load }}"
+      },
+      "matchingColumns": ["report_date"]
+    }
+  },
+  "name": "Save to Supabase",
+  "type": "n8n-nodes-base.supabase",
+  "typeVersion": 1,
+  "notes": "Upserts daily metrics into Supabase daily_health_metrics table, matched on report_date."
+}
