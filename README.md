@@ -177,9 +177,30 @@ Built on May 30, 2026 in a single session — from idea to fully automated produ
 
 ---
 
+## 📚 Resources & References
+
+| Resource | Link |
+|---|---|
+| Claude Sonnet 4.5 (Max Thinking) | AI assistant used for architecture & code generation |
+| Gemini Flash 2.5 | AI model used for daily health summaries |
+| DeepSeek | AI assistant used for development |
+| OpenCode | AI coding agent used in this session |
+| n8n (Railway) | [Workflow instance](https://n8n-production-cce6.up.railway.app/workflow/X6OL2uCe4rK8lfXN?projectId=zFkf00iJh2CBVUO7) |
+| Railway Project | [Project dashboard](https://railway.com/project/2ce5c999-9d3f-45ea-b33c-a63efe842530?environmentId=3d430453-b64e-4943-a800-7737bb9da326) |
+| Railway Service | [n8n service](https://railway.com/project/2ce5c999-9d3f-45ea-b33c-a63efe842530/service/8942f69e-cb4b-4aaa-9356-28a479bc5b93?environmentId=3d430453-b64e-4943-a800-7737bb9da326) |
+| Intervals.icu | [Health data dashboard](https://intervals.icu/?w=2026-06-01) |
+| Supabase | [Database dashboard](https://supabase.com/dashboard/project/waqlzcaizlusjnyrrxqw/sql/6dd3cf93-751f-432d-b866-8749f0b8c788) |
+| Telegram Bot API | [Bot updates](https://api.telegram.org/bot8977658056:AAGG0fKLdsLNn1ofaUyVHB865qR_bbEJz9w/getUpdates) |
+| Google AI Studio | [Rate limits (28-day)](https://aistudio.google.com/rate-limit?timeRange=last-28-days&project=gen-lang-client-0284654041) |
+| Google AI Studio | [Rate limits (1-day)](https://aistudio.google.com/rate-limit?timeRange=last-1-day) |
+| Google Cloud Console | [OAuth clients](https://console.cloud.google.com/auth/clients?project=kunal-health-tracker) |
+| Zapier | [Sample data](https://zapier.com/editor/366028196/published/_GEN_1779862103036/sample) |
+
+---
+
 ## 📄 License
 
-MIT — use it, modify it, build on it.
+License MIT  
 
 ---
 
