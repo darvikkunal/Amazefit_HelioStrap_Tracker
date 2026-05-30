@@ -1,0 +1,24 @@
+{
+  "parameters": {
+    "method": "GET",
+    "url": "https://api.telegram.org/botYOUR_BOT_TOKEN/sendMessage",
+    "sendQueryParameters": true,
+    "queryParameters": {
+      "parameters": [
+        {
+          "name": "chat_id",
+          "value": "YOUR_CHAT_ID"
+        },
+        {
+          "name": "text",
+          "value": "={{ $json.whatsappMsg }}"
+        }
+      ]
+    },
+    "options": {}
+  },
+  "name": "Send Telegram Message",
+  "type": "n8n-nodes-base.httpRequest",
+  "typeVersion": 4.2,
+  "notes": "Sends text health summary to Telegram via bot API. Update YOUR_BOT_TOKEN and YOUR_CHAT_ID."
+}
