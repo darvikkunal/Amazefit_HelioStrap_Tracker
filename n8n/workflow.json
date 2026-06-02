@@ -7,12 +7,12 @@
         "rule": {
           "interval": [
             {
-              "triggerAtHour": 9
+              "triggerAtHour": 6
             }
           ]
         }
       },
-      "name": "Schedule Trigger",
+      "name": "Schedule Trigger (Every Hour)",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.1,
       "position": [240, 300]
@@ -53,7 +53,7 @@
       },
       "name": "Merge",
       "type": "n8n-nodes-base.merge",
-      "typeVersion": 3,
+      "typeVersion": 3.2,
       "position": [250, 700]
     },
     {
@@ -61,7 +61,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const all = $input.all();\nconst wellness = all[0].json;\nconst activities = all.slice(1).map(i => i.json);\n\nlet totalCalories = 0;\nlet avgHRSum = 0;\nlet avgHRCount = 0;\nconst workoutNames = [];\n\nfor (const act of activities) {\n  if (act.calories)          totalCalories += act.calories;\n  if (act.average_heartrate) {\n    avgHRSum   += act.average_heartrate;\n    avgHRCount += 1;\n  }\n  if (act.name) workoutNames.push(`${act.name} (${act.type})`);\n}\n\nconst sleepHours = wellness.sleepSecs\n  ? Math.round((wellness.sleepSecs / 3600) * 100) / 100\n  : null;\n\nreturn [{\n  json: {\n    report_date:     wellness.id,\n    steps:           wellness.steps        ?? null,\n    resting_hr:      wellness.restingHR    ?? null,\n    hrv_avg:         wellness.hrv          ?? null,\n    hrv_min:         null,\n    hrv_max:         null,\n    spo2_avg:        wellness.spO2         ?? null,\n    spo2_min:        null,\n    sleep_hours:     sleepHours,\n    sleep_deep_min:  null,\n    sleep_rem_min:   null,\n    sleep_light_min: null,\n    sleep_awake_min: null,\n    calories:        totalCalories         || null,\n    distance_km:     null,\n    resp_rate:       wellness.respiration  ?? null,\n    sleep_score:     wellness.sleepScore   ?? null,\n    sleep_quality:   wellness.sleepQuality ?? null,\n    weight:          wellness.weight       ?? null,\n    workout_count:   activities.length,\n    workout_names:   workoutNames.join(', ') || 'Rest day',\n    workout_avg_hr:  avgHRCount > 0 ? Math.round(avgHRSum / avgHRCount) : null,\n    atl:             wellness.atl          ?? null,\n    atl_load:        wellness.atlLoad      ?? null\n  }\n}];"
+        "jsCode": "const all = $input.all();\nconst wellness = all[0].json;\nconst activities = all.slice(1).map(i => i.json);\n\nlet totalCalories = 0;\nlet avgHRSum = 0;\nlet avgHRCount = 0;\nconst workoutNames = [];\n\nfor (const act of activities) {\n  if (act.calories)          totalCalories += act.calories;\n  if (act.average_heartrate) {\n    avgHRSum   += act.average_heartrate;\n    avgHRCount += 1;\n  }\n  if (act.name) workoutNames.push(`${act.name} (${act.type})`);\n}\n\nconst sleepHours = wellness.sleepSecs\n  ? Math.round((wellness.sleepSecs / 3600) * 100) / 100\n  : null;\n\nreturn [{\n  json: {\n    report_date:     wellness.id,\n    steps:           wellness.steps        ?? null,\n    resting_hr:      wellness.restingHR    ?? null,\n    hrv_avg:         wellness.hrv          ?? null,\n    hrv_min:         null,\n    hrv_max:         null,\n    spo2_avg:        wellness.spO2         ?? null,\n    spo2_min:        null,\n    sleep_hours:     sleepHours,\n    sleep_deep_min:  null,\n    sleep_rem_min:   null,\n    sleep_light_min: null,\n    sleep_awake_min: null,\n    calories:        totalCalories         || null,\n    distance_km:     null,\n    resp_rate:       wellness.respiration  ?? null,\n    sleep_score:     wellness.sleepScore   ?? null,\n    sleep_quality:   wellness.sleepQuality ?? null,\n    weight:          wellness.weight       ?? null,\n    workout_count:   activities.length,\n    workout_names:   workoutNames.join(', ') || 'Rest day',\n    workout_avg_hr:  avgHRCount > 0\n                       ? Math.round(avgHRSum / avgHRCount)\n                       : null,\n    atl:             wellness.atl          ?? null,\n    atl_load:        wellness.atlLoad      ?? null,\n  }\n}];"
       },
       "name": "Code in JavaScript",
       "type": "n8n-nodes-base.code",
@@ -69,14 +69,16 @@
       "position": [250, 900]
     },
     {
-      "id": "node-06-save-supabase",
+      "id": "node-06-save-postgres",
       "parameters": {
         "operation": "upsert",
         "schema": {
+          "__rl": true,
           "mode": "list",
           "value": "public"
         },
         "table": {
+          "__rl": true,
           "mode": "list",
           "value": "daily_health_metrics"
         },
@@ -112,8 +114,8 @@
         }
       },
       "name": "Save to Supabase",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
       "position": [250, 1100]
     },
     {
@@ -121,7 +123,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const d = $input.first().json;\nconst reportDate = d.report_date ? d.report_date.toString().substring(0, 10) : 'N/A';\nconst sleepQualityMap = { 1: 'Excellent', 2: 'Good', 3: 'Fair', 4: 'Poor', 5: 'Very Poor' };\nconst sleepQualityLabel = d.sleep_quality ? (sleepQualityMap[d.sleep_quality] ?? d.sleep_quality) : 'N/A';\nconst prompt = `You are Kunal's personal health coach. Analyze today's biometric data from his Amazfit Helio Strap and provide an intelligent daily health summary.\n\n\ud83d\udcc5 Date: ${reportDate}\n\n\ud83d\udcca TODAY'S METRICS:\n- Steps: ${d.steps ?? 'N/A'}\n- Calories burned: ${d.calories ?? 'N/A'} kcal\n- Resting Heart Rate: ${d.resting_hr ?? 'N/A'} bpm\n- Avg Workout HR: ${d.workout_avg_hr ?? 'N/A'} bpm\n- HRV (RMSSD): ${d.hrv_avg ?? 'N/A'} ms\n- SpO\u2082: ${d.spo2_avg ?? 'N/A'}%\n- Weight: ${d.weight ?? 'N/A'} kg\n- Training Load (ATL): ${d.atl ? Math.round(d.atl) : 'N/A'}\n\n\ud83c\udfcb\ufe0f WORKOUTS TODAY (${d.workout_count ?? 0} sessions):\n${d.workout_names ?? 'Rest day'}\n\n\ud83d\ude34 SLEEP LAST NIGHT:\n- Total sleep: ${d.sleep_hours ?? 'N/A'} hours\n- Sleep score: ${d.sleep_score ?? 'N/A'}/100\n- Sleep quality: ${sleepQualityLabel}\n\nProvide a friendly, concise health summary in exactly this structure:\n\n1. \ud83c\udf05 OVERALL STATUS (2 sentences)\n2. \ud83d\udcaa WHAT'S GOOD (1-2 specific positive observations)\n3. \u26a0\ufe0f WATCH OUT (1 thing that needs attention)\n4. \ud83c\udfaf ACTION FOR TODAY (1 clear recommendation)\n5. \ud83d\ude34 SLEEP INSIGHT (brief comment on sleep quality and score)\n\nKeep total response under 200 words. Use the exact emojis shown. Be specific with numbers. Speak directly to Kunal.`;\nreturn [{ json: { prompt, ...d } }];"
+        "jsCode": "const d = $input.first().json;\nconst reportDate = d.report_date ? d.report_date.toString().substring(0, 10) : 'N/A';\nconst sleepQualityMap = { 1: 'Excellent', 2: 'Good', 3: 'Fair', 4: 'Poor', 5: 'Very Poor' };\nconst sleepQualityLabel = d.sleep_quality ? (sleepQualityMap[d.sleep_quality] ?? d.sleep_quality) : 'N/A';\n\nconst todayObj = new Date();\nconst today = todayObj.toISOString().split('T')[0];\nconst dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];\nconst todayName = dayNames[todayObj.getDay()];\n\nconst weekNumber = Math.floor((todayObj - new Date(todayObj.getFullYear(), 0, 1)) / (7 * 24 * 60 * 60 * 1000));\nconst isWeekA = weekNumber % 2 === 0;\n\nconst workoutSplit = {\n  Monday:    { label: 'PUSH A \\u2014 Chest Dominant',            type: 'Push', intensity: 'High',       variations: '1. Flat DB Press 3\\u00d7[12,10,8] + Tricep Lying One-Arm Extension 3\\u00d7[12,10,8]\\n2. Barbell OHP 3\\u00d7[12,10,8] + Lateral Raises 3\\u00d7[12,10,8]\\n3. Incline Barbell Press 3\\u00d7[12,10,8] + Tricep Cable Extension 3\\u00d7[12,10,8] + Shoulder Machine Front Press 3\\u00d7[12,10,8]\\nDROP SET FINISHER: Pec Deck Fly \\u2192 Tricep Overhead Rope Extension \\u2192 Cable Face Pull' },\n  Tuesday:   { label: 'PULL A \\u2014 Back Dominant',             type: 'Pull', intensity: 'High',       variations: '1. Barbell Row 3\\u00d7[12,10,8] + Barbell Curl 3\\u00d7[12,10,8]\\n2. Lat Pulldown wide grip 3\\u00d7[12,10,8] + Hammer Curl 3\\u00d7[12,10,8]\\n3. Seated Cable Row 3\\u00d7[12,10,8] + Incline DB Curl 3\\u00d7[12,10,8] + Machine Row 3\\u00d7[12,10,8]\\nDROP SET FINISHER: Straight Arm Pulldown \\u2192 Cable Rope Curl \\u2192 Shrugs' },\n  Wednesday: { label: 'LEGS A \\u2014 Quad Dominant',             type: 'Legs', intensity: 'High',       variations: '1. Barbell Squat 3\\u00d7[12,10,8] + Leg Extension 3\\u00d7[12,10,8]\\n2. Hack Squat 3\\u00d7[12,10,8] + Walking Lunges 3\\u00d7[12,10,8]\\n3. Leg Press 3\\u00d7[12,10,8] + Sissy Squat 3\\u00d7[12,10,8] + Calf Raises 3\\u00d7[12,10,8]\\nDROP SET FINISHER: Leg Curl \\u2192 Hip Adductor Machine \\u2192 Seated Calf Raise' },\n  Thursday:  { label: 'PUSH B \\u2014 Shoulder Dominant',         type: 'Push', intensity: 'High',       variations: '1. Seated DB OHP 3\\u00d7[12,10,8] + Tricep Overhead Cable Extension 3\\u00d7[12,10,8]\\n2. Cable Lateral Raises 3\\u00d7[12,10,8] + Arnold Press 3\\u00d7[12,10,8]\\n3. Decline DB Press 3\\u00d7[12,10,8] + Tricep Dips 3\\u00d7[12,10,8] + Rear Delt Fly Machine 3\\u00d7[12,10,8]\\nDROP SET FINISHER: Incline DB Fly \\u2192 Tricep Cable Pushdown reverse grip \\u2192 DB Front Raise' },\n  Friday:    { label: 'PULL B \\u2014 Bicep + Rear Delt Dominant', type: 'Pull', intensity: 'High',       variations: '1. Deadlift 3\\u00d7[12,10,8] + Concentration Curl 3\\u00d7[12,10,8]\\n2. T-Bar Row 3\\u00d7[12,10,8] + Spider Curl 3\\u00d7[12,10,8]\\n3. Single Arm DB Row 3\\u00d7[12,10,8] + Cable Rope Curl 3\\u00d7[12,10,8] + Reverse Fly DB 3\\u00d7[12,10,8]\\nDROP SET FINISHER: Close Grip Lat Pulldown \\u2192 Preacher Curl \\u2192 Cable Upright Row' },\n  Saturday:  { label: 'LEGS B \\u2014 Hamstring + Glute Dominant', type: 'Legs', intensity: 'Very High',  variations: '1. Romanian Deadlift 3\\u00d7[12,10,8] + Leg Curl 3\\u00d7[12,10,8]\\n2. Bulgarian Split Squat 3\\u00d7[12,10,8] + Glute Kickback Machine 3\\u00d7[12,10,8]\\n3. Sumo Squat DB 3\\u00d7[12,10,8] + Nordic Curl 3\\u00d7[12,10,8] + Seated Calf Raise 3\\u00d7[12,10,8]\\nDROP SET FINISHER: Leg Extension \\u2192 Hip Abductor Machine \\u2192 Standing Calf Raise' },\n  Sunday:    { label: 'Morning Run \\u2014 Active Recovery',      type: 'Cardio', intensity: 'Low-Moderate', variations: 'Easy 20-30 min run at conversational pace. Focus on form and breathing.\\n10 min post-run: dynamic stretching.' }\n};\n\nconst todayWorkout = workoutSplit[todayName] || { label: 'Rest', type: 'Rest', intensity: 'Low', variations: 'Full rest day.' };\n\nconst hrvFlag = !d.hrv_avg ? 'Unknown' : d.hrv_avg < 35 ? 'FATIGUED \\u2014 reduce volume 20%, no max intensity' : d.hrv_avg < 50 ? 'MODERATE \\u2014 train but pace yourself' : 'RECOVERED \\u2014 go all out';\nconst sleepFlag = !d.sleep_score ? 'Unknown' : d.sleep_score < 60 ? 'POOR \\u2014 flag recovery, light cardio only' : d.sleep_score < 75 ? 'AVERAGE \\u2014 normal training ok' : 'GOOD \\u2014 fully ready';\n\nconst creatorsLibrary = `KUNAL'S APPROVED CREATORS \\u2014 use ONLY these. Match to today's session type.\\n\\n\\uD83C\\uDFCB\\uFE0F SCIENCE & TECHNIQUE:\\n- Jeff Nippard \\u2192 Science-based hypertrophy, progressive overload\\n- Hany Rambod \\u2192 FST-7 hypertrophy coaching, pro bodybuilding\\n- Athlean-X / Jeff Cavaliere \\u2192 Injury prevention, biomechanics\\n- Dr. Mike Israetel \\u2192 Volume, progressive overload, MEV/MRV science\\n- Alan Thrall \\u2192 Squat/deadlift/bench form cues\\n\\n\\uD83D\\uDCAA LIFESTYLE & MOTIVATION:\\n- Chris Bumstead \\u2192 Classic physique, gym lifestyle, morning routines\\n- Jesse James West \\u2192 High energy gym challenges\\n- CT Fletcher \\u2192 Raw intensity, iron discipline\\n- David Laid \\u2192 Long-game discipline, aesthetic training\\n- Simeon Panda \\u2192 Natural bodybuilder, full workout routines\\n\\n\\uD83E\\uDDD8 MINDSET & DISCIPLINE:\\n- Shivi Kaushik \\u2192 Mindset, discipline, Indian creator\\n- Saket Gokhale \\u2192 Indian fitness coach, nutrition\\n- Yatinder Singh \\u2192 Indian bodybuilder, Hindi motivation\\n- Guru Mann \\u2192 Desi diet, Hindi content\\n- Sahil Khan \\u2192 Indian gym lifestyle\\n\\n\\uD83C\\uDFC3 CARDIO & CONDITIONING:\\n- Mike Thurston \\u2192 Cardio integration, lean muscle\\n- Jeremy Ethier \\u2192 Evidence-based training\\n- Knees Over Toes Guy \\u2192 Injury-proofing, knee longevity`;\n\nconst prompt = `You are Kunal's personal AI strength coach delivering his 6 AM morning brief. Kunal follows a PPL A/B split targeting muscle hypertrophy with progressive overload.\\n\\nCRITICAL RULES:\\n- Output ALL 7 sections. Do NOT stop early.\\n- 400-500 words total.\\n- Speak directly \\u2014 \"you\" and \"your\" always.\\n- Calories in data = ACTIVE CALORIES BURNED by body from fitness tracker. NOT food consumed. Never say \"consumed\" or \"intake\" for calories field.\\n- Be specific with numbers.\\n- Section 5 MANDATORY \\u2014 exactly 2 YouTube recommendations.\\n\\n\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\n\\uD83D\\uDCC5 YESTERDAY (${reportDate})\\n\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\nSteps: ${d.steps ?? 'not synced'} ${d.steps ? (d.steps >= 8000 ? '\\u2705 on target' : d.steps >= 5000 ? '\\u26A0\\uFE0F below 9k goal' : '\\u274C very low') : ''}\\nActive Calories BURNED: ${d.calories ?? 'not synced'} kcal\\nResting HR: ${d.resting_hr ?? 'N/A'} bpm\\nAvg Workout HR: ${d.workout_avg_hr ?? 'no workout logged'}\\nHRV (RMSSD): ${d.hrv_avg ?? 'N/A'} ms \\u2192 Recovery: ${hrvFlag}\\nWeight: ${d.weight ?? 'N/A'} kg\\nTraining Load (ATL): ${d.atl ? Math.round(d.atl) : 'N/A'}\\nWorkouts logged: ${d.workout_count ?? 0} \\u2014 ${d.workout_names ?? 'Rest day'}\\nSleep: ${d.sleep_hours ?? 'N/A'} hrs | Score: ${d.sleep_score ?? 'N/A'}/100 | Quality: ${sleepQualityLabel} \\u2192 ${sleepFlag}\\n\\n\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\n\\uD83D\\uDCC5 TODAY: ${todayName}, ${today}\\n\\uD83C\\uDFCB\\uFE0F SESSION: ${todayWorkout.label}\\n\\u26A1 Type: ${todayWorkout.type} | Intensity: ${todayWorkout.intensity}\\n\\nTODAY'S WORKOUT PLAN:\\n${todayWorkout.variations}\\n\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\n\\nKUNAL'S GOALS:\\n- 1.5 hr morning strength sessions, PPL A/B split\\n- 8,000-10,000 steps/day (averaging 5k-6k)\\n- 10 min cardio after every session\\n- Build muscle, stay consistent, develop discipline\\n\\n${creatorsLibrary}\\n\\n\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\nWRITE ALL 7 SECTIONS:\\n\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\n\\n1. \\uD83C\\uDF05 YESTERDAY RECAP\\n2 honest data-driven sentences. Use actual numbers. Set tone for today.\\n\\n2. \\uD83D\\uDCAA WIN OF THE DAY\\n1-2 specific positives. Precise numbers. Find something real.\\n\\n3. \\u26A0\\uFE0F ONE THING TO FIX\\nSingle most important metric. Connect to muscle building.\\n\\n4. \\uD83C\\uDFAF TODAY'S TARGETS \\u2014 ${todayName}\\n- Workout: ${todayWorkout.label} \\u2014 give 1 specific technique tip for today's KEY exercise\\n- Drop set tip: which drop set exercise to focus on most today and why\\n- Steps: specific number 8,000-10,000\\n- Cardio: 10 min post-session \\u2014 specific type for ${todayWorkout.type} day\\n- Nutrition: 1 specific tip for ${todayWorkout.type} day\\n\\n5. \\uD83D\\uDD25 WATCH THIS TODAY\\nMANDATORY \\u2014 exactly 2 creators from approved list. Match to: ${todayWorkout.label}.\\nFormat \\u2014 two separate lines:\\n\\uD83C\\uDFA5 [5-8 word video topic] \\u2192 youtube.com/@[Handle] \\u2014 Search \"[3-5 word query]\"\\n\\uD83C\\uDFA5 [5-8 word video topic] \\u2192 youtube.com/@[Handle] \\u2014 Search \"[3-5 word query]\"\\n\\n6. \\uD83D\\uDCA1 RECOVERY INTELLIGENCE\\n1-2 sentences. Use HRV ${d.hrv_avg ?? 'N/A'}ms + sleep ${d.sleep_score ?? 'N/A'}/100. Tell him how hard to push today.\\n\\n7. \\uD83C\\uDF19 TONIGHT'S SLEEP TARGET\\nOne sentence. Specific bedtime for 7.5-8 hrs.`;\n\nreturn [{ json: { prompt, reportDate, today, todayName, todayWorkout, ...d } }];"
       },
       "name": "Build Gemini Prompt",
       "type": "n8n-nodes-base.code",
@@ -129,26 +131,46 @@
       "position": [250, 1300]
     },
     {
-      "id": "node-08-gemini-api",
+      "id": "node-08-openrouter-api",
       "parameters": {
         "method": "POST",
-        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=YOUR_GEMINI_API_KEY",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_OPENROUTER_API_KEY"
+            },
+            {
+              "name": "HTTP-Referer",
+              "value": "https://your-n8n-instance.com"
+            },
+            {
+              "name": "X-Title",
+              "value": "Kunal Health Coach"
+            }
+          ]
+        },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{\n  contents: [\n    {\n      parts: [\n        {\n          text: $json.prompt\n        }\n      ]\n    }\n  ],\n  generationConfig: {\n    temperature: 0.7,\n    maxOutputTokens: 2048\n  }\n}}",
+        "jsonBody": "={\n  \"model\": \"openrouter/free\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"={{ $json.prompt }}\"\n    }\n  ],\n  \"max_tokens\": 2048,\n  \"transforms\": [\"middle-out\"],\n  \"route\": \"fallback\"\n}",
         "options": {}
       },
-      "name": "HTTP Request (Gemini)",
+      "name": "HTTP Request",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [250, 1500]
+      "position": [250, 1500],
+      "retryOnFail": true,
+      "executeOnce": false,
+      "waitBetweenTries": 5000
     },
     {
       "id": "node-09-format-email-telegram",
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const geminiRaw = $input.first().json;\nconst prevData = $('Build Gemini Prompt').first().json;\n\nconst aiText = geminiRaw?.candidates?.[0]?.content?.parts?.[0]?.text ?? 'No summary available';\nconst d = prevData;\nconst reportDate = d.report_date ? d.report_date.toString().substring(0, 10) : 'N/A';\n\nconst sleepQualityMap = { 1: 'Excellent', 2: 'Good', 3: 'Fair', 4: 'Poor', 5: 'Very Poor' };\nconst sleepQualityLabel = d.sleep_quality ? (sleepQualityMap[d.sleep_quality] ?? d.sleep_quality) : '\u2014';\n\nconst htmlEmail = `<!DOCTYPE html><html><body style=\"font-family:-apple-system,Arial,sans-serif;background:#f5f5f5;padding:20px;margin:0\">\n<div style=\"max-width:600px;margin:0 auto;background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1)\">\n  <div style=\"background:linear-gradient(135deg,#1a1a2e,#16213e);color:white;padding:24px;text-align:center\">\n    <h2 style=\"margin:0;font-size:22px\">\ud83c\udfc3 Daily Health Report</h2>\n    <p style=\"margin:4px 0 0;opacity:.7;font-size:13px\">${reportDate} \u00b7 Helio \u2192 Zepp \u2192 Intervals.icu \u2192 Gemini</p>\n  </div>\n  <div style=\"display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:20px\">\n    <div style=\"background:#f8f9fa;border-radius:8px;padding:12px;text-align:center\"><div style=\"font-size:22px;font-weight:700;color:#1a1a2e\">${d.steps ?? '\u2014'}</div><div style=\"font-size:10px;color:#888;margin-top:3px\">STEPS</div></div>\n    <div style=\"background:#f8f9fa;border-radius:8px;padding:12px;text-align:center\"><div style=\"font-size:22px;font-weight:700;color:#1a1a2e\">${d.calories ?? '\u2014'}</div><div style=\"font-size:10px;color:#888;margin-top:3px\">CALORIES</div></div>\n    <div style=\"background:#f8f9fa;border-radius:8px;padding:12px;text-align:center\"><div style=\"font-size:22px;font-weight:700;color:#e63946\">${d.resting_hr ?? '\u2014'}</div><div style=\"font-size:10px;color:#888;margin-top:3px\">RESTING HR</div></div>\n    <div style=\"background:#f8f9fa;border-radius:8px;padding:12px;text-align:center\"><div style=\"font-size:22px;font-weight:700;color:#4361ee\">${d.hrv_avg ?? '\u2014'}</div><div style=\"font-size:10px;color:#888;margin-top:3px\">HRV (ms)</div></div>\n    <div style=\"background:#f8f9fa;border-radius:8px;padding:12px;text-align:center\"><div style=\"font-size:22px;font-weight:700;color:#2a9d8f\">${d.sleep_hours ?? '\u2014'}</div><div style=\"font-size:10px;color:#888;margin-top:3px\">SLEEP HRS</div></div>\n    <div style=\"background:#f8f9fa;border-radius:8px;padding:12px;text-align:center\"><div style=\"font-size:22px;font-weight:700;color:#f4a261\">${d.sleep_score ?? '\u2014'}</div><div style=\"font-size:10px;color:#888;margin-top:3px\">SLEEP SCORE</div></div>\n    <div style=\"background:#f8f9fa;border-radius:8px;padding:12px;text-align:center\"><div style=\"font-size:22px;font-weight:700;color:#1a1a2e\">${d.workout_count ?? 0}</div><div style=\"font-size:10px;color:#888;margin-top:3px\">WORKOUTS</div></div>\n    <div style=\"background:#f8f9fa;border-radius:8px;padding:12px;text-align:center\"><div style=\"font-size:22px;font-weight:700;color:#1a1a2e\">${d.workout_avg_hr ?? '\u2014'}</div><div style=\"font-size:10px;color:#888;margin-top:3px\">AVG HR</div></div>\n    <div style=\"background:#f8f9fa;border-radius:8px;padding:12px;text-align:center\"><div style=\"font-size:22px;font-weight:700;color:#1a1a2e\">${d.weight ?? '\u2014'}</div><div style=\"font-size:10px;color:#888;margin-top:3px\">WEIGHT kg</div></div>\n  </div>\n  ${d.workout_names ? `<div style=\"padding:0 20px 12px\">\n    <div style=\"background:#fff8e7;border-left:3px solid #f4a261;padding:10px 14px;border-radius:0 6px 6px 0;font-size:13px;color:#555\">\n      \ud83c\udfcb\ufe0f <strong>Workouts:</strong> ${d.workout_names}\n    </div>\n  </div>` : ''}\n  <div style=\"padding:0 20px 20px\">\n    <div style=\"background:#f0f4ff;border-left:4px solid #4361ee;padding:16px;border-radius:0 8px 8px 0;font-size:14px;line-height:1.7;color:#333;white-space:pre-wrap\">${aiText}</div>\n  </div>\n  <div style=\"background:#f8f9fa;padding:12px;text-align:center;font-size:11px;color:#aaa\">\n    Amazfit Helio Strap \u2192 Zepp \u2192 Intervals.icu \u2192 n8n \u2192 Gemini \u2192 You\n  </div>\n</div></body></html>`;\n\nconst whatsappMsg = `\ud83c\udfc3 Health Report \u2014 ${reportDate}\n\n\ud83d\udc5f Steps: ${d.steps ?? 'N/A'}\n\ud83d\udd25 Calories: ${d.calories ?? 'N/A'} kcal\n\u2764\ufe0f Resting HR: ${d.resting_hr ?? 'N/A'} bpm\n\ud83e\udde0 HRV: ${d.hrv_avg ?? 'N/A'} ms\n\ud83d\ude34 Sleep: ${d.sleep_hours ?? 'N/A'}h (Score: ${d.sleep_score ?? 'N/A'}/100)\n\ud83c\udfcb\ufe0f Workouts: ${d.workout_count ?? 0} sessions\n\n${aiText}`;\n\nreturn [{ json: { htmlEmail, whatsappMsg, report_date: reportDate } }];"
+        "jsCode": "const geminiRaw = $input.first().json;\nconst prevData = $('Build Gemini Prompt').first().json;\n\nconst rawContent = geminiRaw?.choices?.[0]?.message?.content ?? null;\nconst rawReasoning = geminiRaw?.choices?.[0]?.message?.reasoning ?? '';\nconst rawText = (rawContent && rawContent.trim().length > 50) ? rawContent : rawReasoning;\n\nconst aiText = rawText\n  .replace(/<think>[\\s\\S]*?<\\/think>/gi, '')\n  .replace(/^(Let me|I need|We need|First,|Now,|Let's|Okay,|Alright,|Looking at|I'll|I will|I should|So I|To output|Must |Section \\d|Count:|That's \\d|Total \\d|We need to|I'm going|Going to|Need to|Let me think|Thinking|Draft|Output|Words:|Let me draft|Here's my|Craft:|So the|Let me now|Now I|Now let|So for|For section|Now section|Candidates:|Let's pick|Pick:|Choose:|Must be|Must pick|Must match|Must output|Must include|Must use|Must speak|Must write|Must have|Must give|Must recommend|Must mention|Must say|Must avoid|Must not|Must never|Rules:|Rule:|Format:|Note:|Notes:|Eg |E.g|Example:|Examples:|Let me craft|So section|So we need|Second line|First line|Two lines|Both lines|Each line|Line \\d|Next section|Previous section).*$/gim, '')\n  .replace(/\\n{3,}/g, '\\n\\n')\n  .trim();\n\nconst d = prevData;\nconst reportDate = d.report_date ? d.report_date.toString().substring(0, 10) : 'N/A';\n\nconst sleepQualityMap = { 1: 'Excellent', 2: 'Good', 3: 'Fair', 4: 'Poor', 5: 'Very Poor' };\nconst sleepQualityLabel = d.sleep_quality ? (sleepQualityMap[d.sleep_quality] ?? d.sleep_quality) : '\\u2014';\n\nconst todayObj = new Date();\nconst todayStr = todayObj.toISOString().split('T')[0];\nconst dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];\nconst todayName = dayNames[todayObj.getDay()];\n\nconst workoutSplit = {\n  Monday: 'Chest & Triceps', Tuesday: 'Back & Biceps', Wednesday: 'Shoulders',\n  Thursday: 'Legs', Friday: 'Full Upper Body', Saturday: 'Legs + Shoulders + HIIT', Sunday: 'Morning Run'\n};\nconst todaySession = workoutSplit[todayName] || 'Rest';\n\nconst stepsColor = d.steps >= 8000 ? '#22c55e' : d.steps >= 5000 ? '#f59e0b' : '#ef4444';\nconst hrvColor   = d.hrv_avg >= 60  ? '#22c55e' : d.hrv_avg >= 40  ? '#f59e0b' : '#ef4444';\nconst sleepColor = d.sleep_score >= 80 ? '#22c55e' : d.sleep_score >= 60 ? '#f59e0b' : '#ef4444';\nconst stepsGoalPct = d.steps ? Math.min(Math.round((d.steps / 9000) * 100), 100) : 0;\n\nconst aiSections = aiText\n  .split('\\n')\n  .filter(l => l.trim())\n  .map(line => {\n    const trimmed = line.trim();\n    const isHeader = /^[1-9]\\.\\s+[^\\w]/.test(trimmed) || /^[\\u{1f300}-\\u{1f9ff}]/.test(trimmed);\n    if (isHeader) {\n      return `<div style=\"font-weight:600;font-size:14px;color:#1e293b;margin:16px 0 5px;padding-bottom:5px;border-bottom:1px solid #e2e8f0\">${trimmed}</div>`;\n    }\n    if (trimmed.startsWith('\\uD83C\\uDFA5')) {\n      return `<div style=\"background:#fff7ed;border-radius:6px;padding:8px 12px;margin:4px 0;border:1px solid #fed7aa;font-size:13px;color:#9a3412;line-height:1.6\">${trimmed}</div>`;\n    }\n    if (trimmed.startsWith('\\u2022') || trimmed.startsWith('-')) {\n      return `<div style=\"font-size:13px;color:#475569;line-height:1.7;padding-left:12px;margin:2px 0\">${trimmed}</div>`;\n    }\n    return `<div style=\"font-size:13px;color:#475569;line-height:1.7;margin:3px 0\">${trimmed}</div>`;\n  }).join('');\n\nconst htmlEmail = `<html><body style=\"font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:#f1f5f9;padding:24px;margin:0\">\\n<div style=\"max-width:620px;margin:0 auto\">\\n  <div style=\"background:#0f172a;border-radius:16px 16px 0 0;padding:28px 24px;text-align:center\">\\n    <div style=\"font-size:28px;margin-bottom:6px\">\\uD83C\\uDFCB\\uFE0F</div>\\n    <h1 style=\"margin:0;color:#f8fafc;font-size:20px;font-weight:600\">Kunal's Daily Health Brief</h1>\\n    <p style=\"margin:6px 0 0;color:#94a3b8;font-size:12px;letter-spacing:0.5px;text-transform:uppercase\">${reportDate} \\u00b7 Amazfit Helio \\u2192 AI Coach</p>\\n  </div>\\n  <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#1d4ed8\">\\n    <tr>\\n      <td style=\"padding:12px 24px;color:#bfdbfe;font-size:11px;text-transform:uppercase\">Today's session \\u2014 ${todayName}</td>\\n      <td style=\"padding:12px 24px;color:#ffffff;font-size:13px;font-weight:500;text-align:right\">\\uD83D\\uDCAA ${todaySession}</td>\\n    </tr>\\n  </table>\\n  <div style=\"background:#ffffff;padding:20px;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0\">\\n    <div style=\"font-size:10px;text-transform:uppercase;color:#94a3b8;margin-bottom:12px\">Yesterday's biometrics</div>\\n    <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin-bottom:8px\">\\n      <tr>\\n        <td width=\"33%\" style=\"padding-right:4px\"><div style=\"background:#f8fafc;border-radius:10px;padding:14px 8px;text-align:center;border:1px solid #e2e8f0\"><div style=\"font-size:9px;color:#94a3b8;text-transform:uppercase;margin-bottom:4px\">Steps</div><div style=\"font-size:22px;font-weight:600;color:${stepsColor}\">${d.steps?.toLocaleString() ?? '\\u2014'}</div><div style=\"font-size:9px;color:#94a3b8;margin-top:3px\">goal: 9,000</div></div></td>\\n        <td width=\"33%\" style=\"padding:0 4px\"><div style=\"background:#f8fafc;border-radius:10px;padding:14px 8px;text-align:center;border:1px solid #e2e8f0\"><div style=\"font-size:9px;color:#94a3b8;text-transform:uppercase;margin-bottom:4px\">Calories</div><div style=\"font-size:22px;font-weight:600;color:#1e293b\">${d.calories ?? '\\u2014'}</div><div style=\"font-size:9px;color:#94a3b8;margin-top:3px\">kcal burned</div></div></td>\\n        <td width=\"33%\" style=\"padding-left:4px\"><div style=\"background:#f8fafc;border-radius:10px;padding:14px 8px;text-align:center;border:1px solid #e2e8f0\"><div style=\"font-size:9px;color:#94a3b8;text-transform:uppercase;margin-bottom:4px\">Resting HR</div><div style=\"font-size:22px;font-weight:600;color:#ef4444\">${d.resting_hr ?? '\\u2014'}</div><div style=\"font-size:9px;color:#94a3b8;margin-top:3px\">bpm</div></div></td>\\n      </tr>\\n    </table>\\n    <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin-bottom:16px\">\\n      <tr>\\n        <td width=\"33%\" style=\"padding-right:4px\"><div style=\"background:#f8fafc;border-radius:10px;padding:14px 8px;text-align:center;border:1px solid #e2e8f0\"><div style=\"font-size:9px;color:#94a3b8;text-transform:uppercase;margin-bottom:4px\">HRV</div><div style=\"font-size:22px;font-weight:600;color:${hrvColor}\">${d.hrv_avg ?? '\\u2014'}</div><div style=\"font-size:9px;color:#94a3b8;margin-top:3px\">ms rmssd</div></div></td>\\n        <td width=\"33%\" style=\"padding:0 4px\"><div style=\"background:#f8fafc;border-radius:10px;padding:14px 8px;text-align:center;border:1px solid #e2e8f0\"><div style=\"font-size:9px;color:#94a3b8;text-transform:uppercase;margin-bottom:4px\">Sleep</div><div style=\"font-size:22px;font-weight:600;color:#6366f1\">${d.sleep_hours ?? '\\u2014'}</div><div style=\"font-size:9px;color:#94a3b8;margin-top:3px\">hours</div></div></td>\\n        <td width=\"33%\" style=\"padding-left:4px\"><div style=\"background:#f8fafc;border-radius:10px;padding:14px 8px;text-align:center;border:1px solid #e2e8f0\"><div style=\"font-size:9px;color:#94a3b8;text-transform:uppercase;margin-bottom:4px\">Sleep score</div><div style=\"font-size:22px;font-weight:600;color:${sleepColor}\">${d.sleep_score ?? '\\u2014'}</div><div style=\"font-size:9px;color:#94a3b8;margin-top:3px\">/ 100</div></div></td>\\n      </tr>\\n    </table>\\n    <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin-bottom:16px\">\\n      <tr>\\n        <td width=\"33%\" style=\"padding-right:4px\"><div style=\"background:#f8fafc;border-radius:10px;padding:14px 8px;text-align:center;border:1px solid #e2e8f0\"><div style=\"font-size:9px;color:#94a3b8;text-transform:uppercase;margin-bottom:4px\">Workout HR</div><div style=\"font-size:22px;font-weight:600;color:#1e293b\">${d.workout_avg_hr ?? '\\u2014'}</div><div style=\"font-size:9px;color:#94a3b8;margin-top:3px\">avg bpm</div></div></td>\\n        <td width=\"33%\" style=\"padding:0 4px\"><div style=\"background:#f8fafc;border-radius:10px;padding:14px 8px;text-align:center;border:1px solid #e2e8f0\"><div style=\"font-size:9px;color:#94a3b8;text-transform:uppercase;margin-bottom:4px\">Weight</div><div style=\"font-size:22px;font-weight:600;color:#1e293b\">${d.weight ?? '\\u2014'}</div><div style=\"font-size:9px;color:#94a3b8;margin-top:3px\">kg</div></div></td>\\n        <td width=\"33%\" style=\"padding-left:4px\"><div style=\"background:#f8fafc;border-radius:10px;padding:14px 8px;text-align:center;border:1px solid #e2e8f0\"><div style=\"font-size:9px;color:#94a3b8;text-transform:uppercase;margin-bottom:4px\">Sessions</div><div style=\"font-size:22px;font-weight:600;color:#1e293b\">${d.workout_count ?? 0}</div><div style=\"font-size:9px;color:#94a3b8;margin-top:3px\">workouts</div></div></td>\\n      </tr>\\n    </table>\\n    <table style=\"margin-bottom:16px\" width=\"100%\">\\n      <tr>\\n        <td style=\"font-size:11px;color:#64748b\">Steps progress toward 9,000 goal</td>\\n        <td style=\"font-size:11px;font-weight:500;color:${stepsColor};text-align:right\">${stepsGoalPct}%</td>\\n      </tr>\\n    </table>\\n    <div style=\"background:#e2e8f0;border-radius:99px;height:6px;margin-bottom:16px\">\\n      <div style=\"background:${stepsColor};height:6px;border-radius:99px;width:${stepsGoalPct}%\"></div>\\n    </div>\\n    ${d.workout_names && d.workout_names !== 'Rest day' ? `<div style=\"background:#fef3c7;border-radius:8px;padding:10px 14px;margin-bottom:8px;border:1px solid #fde68a\"><div style=\"font-size:11px;color:#92400e;text-transform:uppercase\">Yesterday's workouts</div><div style=\"font-size:13px;color:#78350f;font-weight:500;margin-top:3px\">\\uD83C\\uDFCB\\uFE0F ${d.workout_names}</div></div>` : ''}\\n  </div>\\n  <div style=\"background:#ffffff;border:1px solid #e2e8f0;border-top:none;padding:20px\">\\n    <div style=\"font-size:10px;text-transform:uppercase;color:#94a3b8;margin-bottom:14px\">AI coach brief \\u2014 ${todayName}, ${todayStr}</div>\\n    <div style=\"background:#f8fafc;border-radius:10px;padding:16px;border:1px solid #e2e8f0\">${aiSections}</div>\\n  </div>\\n  <div style=\"background:#0f172a;border-radius:0 0 16px 16px;padding:14px 24px;text-align:center\">\\n    <p style=\"margin:0;color:#475569;font-size:11px\">Amazfit Helio \\u2192 Zepp \\u2192 Intervals.icu \\u2192 n8n \\u2192 AI \\u2192 You</p>\\n  </div>\\n</div></body></html>`;\n\nconst safeTelegramAi = aiText\n  .replace(/\\*\\*(.*?)\\*\\*/g, '$1')\n  .replace(/\\*(.*?)\\*/g, '$1')\n  .replace(/_(.*?)_/g, '$1')\n  .replace(/\\[(.*?)\\]\\((.*?)\\)/g, '$1 \\u2192 $2')\n  .replace(/#{1,6}\\s/g, '')\n  .replace(/[*_`]/g, '')\n  .trim();\n\nconst telegramMsg = `\\uD83D\\uDCAA *Kunal's Health Brief \\u2014 ${reportDate}*\\n\\uD83D\\uDCC5 Today: *${todayName}* \\u2192 ${todaySession}\\n\\n*Yesterday's Numbers*\\n\\uD83D\\uDC5F Steps: ${d.steps?.toLocaleString() ?? 'N/A'} ${d.steps >= 8000 ? '\\u2705' : d.steps >= 5000 ? '\\u26A0\\uFE0F' : '\\u274C'} _(goal: 9,000)_\\n\\uD83D\\uDD25 Calories: ${d.calories ?? 'N/A'} kcal\\n\\u2764\\uFE0F Resting HR: ${d.resting_hr ?? 'N/A'} bpm\\n\\uD83E\\uDDE0 HRV: ${d.hrv_avg ?? 'N/A'} ms ${d.hrv_avg >= 60 ? '\\u2705' : d.hrv_avg >= 40 ? '\\u26A0\\uFE0F' : '\\u274C'}\\n\\uD83D\\uDCA4 Sleep: ${d.sleep_hours ?? 'N/A'}h \\u00b7 Score: ${d.sleep_score ?? 'N/A'}/100 \\u00b7 ${sleepQualityLabel}\\n\\uD83C\\uDFCB\\uFE0F Workouts: ${d.workout_count ?? 0} session(s)${d.workout_names && d.workout_names !== 'Rest day' ? ` \\u2014 ${d.workout_names}` : ''}\\n\\u2696\\uFE0F Weight: ${d.weight ?? 'N/A'} kg\\n\\n\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\n\\uD83E\\uDD16 AI Coach\\n\\n${safeTelegramAi}\\n\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\n_Amazfit Helio \\u2192 n8n \\u2192 AI Coach_`;\n\nreturn [{ json: { htmlEmail, whatsappMsg: telegramMsg, report_date: reportDate } }];"
       },
       "name": "Format Email + WhatsApp Message",
       "type": "n8n-nodes-base.code",
@@ -159,7 +181,7 @@
       "id": "node-10-send-gmail",
       "parameters": {
         "sendTo": "darvikkunal@gmail.com",
-        "subject": "=\ud83c\udfc3 Daily Health Report \u2014 {{ $json.report_date }}",
+        "subject": "=\uD83C\uDFC3 Daily Health Report \u2014 {{ $json.report_date }}",
         "message": "={{ $json.htmlEmail }}",
         "options": {}
       },
@@ -173,7 +195,7 @@
       "parameters": {
         "method": "GET",
         "url": "https://api.telegram.org/botYOUR_BOT_TOKEN/sendMessage",
-        "sendQueryParameters": true,
+        "sendQuery": true,
         "queryParameters": {
           "parameters": [
             {
@@ -183,19 +205,23 @@
             {
               "name": "text",
               "value": "={{ $json.whatsappMsg }}"
+            },
+            {
+              "name": "parse_mode",
+              "value": "Markdown"
             }
           ]
         },
         "options": {}
       },
-      "name": "Send Telegram Message",
+      "name": "Send Telegram via kunalhealth_bot",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [400, 1900]
     }
   ],
   "connections": {
-    "Schedule Trigger": {
+    "Schedule Trigger (Every Hour)": {
       "main": [
         [
           {
@@ -270,14 +296,14 @@
       "main": [
         [
           {
-            "node": "HTTP Request (Gemini)",
+            "node": "HTTP Request",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "HTTP Request (Gemini)": {
+    "HTTP Request": {
       "main": [
         [
           {
@@ -297,7 +323,7 @@
             "index": 0
           },
           {
-            "node": "Send Telegram Message",
+            "node": "Send Telegram via kunalhealth_bot",
             "type": "main",
             "index": 0
           }
