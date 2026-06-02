@@ -10,7 +10,7 @@ Complete end-to-end configuration guide. Follow every section in order.
 2. [Intervals.icu Setup](#2-intervalsicu-setup)
 3. [Get API Credentials](#3-get-api-credentials)
 4. [Supabase Setup](#4-supabase-setup)
-5. [Gemini API Setup](#5-gemini-api-setup)
+5. [OpenRouter API Setup](#5-openrouter-api-setup)
 6. [Telegram Bot Setup](#6-telegram-bot-setup)
 7. [n8n Setup](#7-n8n-setup)
 8. [Import & Configure Workflow](#8-import--configure-workflow)
@@ -133,28 +133,33 @@ You should see all 26 columns listed.
 
 ---
 
-## 5. Gemini API Setup
+## 5. OpenRouter API Setup
 
 ### Get API Key
-1. Go to [Google AI Studio](https://aistudio.google.com)
-2. Sign in with your Google account
-3. Click **Get API Key** → **Create API key**
+1. Go to [openrouter.ai/keys](https://openrouter.ai/keys)
+2. Sign in with your Google or GitHub account
+3. Click **Create Key**
 4. Copy the key
 
 ### Test it
 ```bash
-curl -X POST \
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=YOUR_KEY" \
+curl -X POST "https://openrouter.ai/api/v1/chat/completions" \
+  -H "Authorization: Bearer YOUR_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"contents":[{"parts":[{"text":"Say hello in one sentence"}]}]}'
+  -d '{
+    "model": "openrouter/free",
+    "messages": [{"role": "user", "content": "Say hello in one sentence"}],
+    "max_tokens": 100
+  }'
 ```
 
-You should get a JSON response with text content.
+You should get a JSON response with `choices[0].message.content`.
 
-### Free tier limits
-- 15 requests per minute
-- 1 million tokens per minute
-- More than enough for 1 daily report
+### How it works
+- Uses `openrouter/free` model — routes to the best available free model
+- `route: "fallback"` — automatically falls through providers on failure
+- `transforms: ["middle-out"]` — model router pattern for optimal output
+- No free tier limits like Gemini — usage-based with generous free credits
 
 ---
 
@@ -232,13 +237,21 @@ Access at: `http://localhost:5678`
 5. Click **Save**
 6. Apply same credential to **Fetch Intervals Activities** node
 
-#### Supabase
-1. Click on **Save to Supabase** node
+#### Supabase (via Postgres node)
+1. Click on **Save to Supabase** node (uses Postgres node type)
 2. Click on the credential dropdown → **Create new**
-3. Set:
-   - **Host:** your Supabase project URL
-   - **Service Role Secret:** your anon key
+3. Set the Postgres connection details:
+   - **Host:** your Supabase project host (e.g. `db.xxx.supabase.co`)
+   - **Port:** `5432`
+   - **Database:** `postgres`
+   - **User:** `postgres`
+   - **Password:** your database password (set during project creation)
+   - **SSL:** enabled
 4. Save
+
+> Alternatively, you can use Supabase connection pooling:
+> - **Host:** `aws-0-xxx.pooler.supabase.com`
+> - **Port:** `6543` (transaction mode)
 
 #### Gmail
 1. Click on **Send Gmail Report** node
@@ -256,7 +269,7 @@ In the workflow, update these values if different from defaults:
 |---|---|---|
 | Fetch Wellness | URL | Replace `i598416` with your athlete ID |
 | Fetch Activities | URL | Replace `i598416` with your athlete ID |
-| HTTP Request (Gemini) | URL | Replace API key in URL |
+| HTTP Request (OpenRouter) | Authorization header | Replace `YOUR_OPENROUTER_API_KEY` |
 | Send Gmail | sendTo | Your email address |
 | Send Telegram | chat_id query param | Your chat ID |
 | Send Telegram | URL | Replace bot token |
@@ -310,13 +323,13 @@ Test nodes **in order** by clicking each node → **Execute step**:
 **Expected:** Row upserted, output shows saved record with `id`
 
 ### Step 6 — Build Gemini Prompt
-**Expected:** Output contains `prompt` field with formatted health data
+**Expected:** Output contains `prompt` field with advanced 7-section prompt including workout splits, recovery flags, creator recommendations
 
-### Step 7 — HTTP Request (Gemini)
-**Expected:** `finishReason: "STOP"` (not MAX_TOKENS)
+### Step 7 — HTTP Request (OpenRouter)
+**Expected:** Response with `choices[0].message.content` containing AI health summary. If transient failure, node retries after 5 seconds.
 
 ### Step 8 — Format Email + WhatsApp
-**Expected:** `htmlEmail` and `whatsappMsg` fields populated
+**Expected:** `htmlEmail` (color-coded metrics grid + session banner + progress bar + AI coach brief) and `whatsappMsg` (Markdown-formatted Telegram message) fields populated
 
 ### Step 9 — Send Gmail
 **Expected:** Email arrives in inbox within 30 seconds
@@ -334,7 +347,7 @@ Test nodes **in order** by clicking each node → **Execute step**:
 3. Status shows **Published** — workflow is now live
 
 ### Verify tomorrow
-1. At 9 AM the next day, check your Gmail and Telegram
+1. At 6 AM the next day, check your Gmail and Telegram
 2. You should receive the health report automatically
 3. Check Supabase → Table Editor → `daily_health_metrics` to see the new row
 
@@ -352,7 +365,7 @@ Test nodes **in order** by clicking each node → **Execute step**:
 - [ ] Intervals.icu API key generated and tested
 - [ ] Supabase project created
 - [ ] Schema + extended columns created in Supabase
-- [ ] Gemini API key obtained and tested
+- [ ] OpenRouter API key obtained and tested
 - [ ] Telegram bot created and chat ID obtained
 - [ ] n8n workflow imported
 - [ ] All credentials configured in n8n
