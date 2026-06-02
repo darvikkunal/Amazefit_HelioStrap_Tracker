@@ -14,5 +14,5 @@
       "name": "Intervals.icu API"
     }
   },
-  "notes": "GET yesterday's workout activities from Intervals.icu. Returns array of workouts with name, calories, avg HR."
+  "notes": "GET yesterday's workout activities from Intervals.icu. Returns array of workouts with name, type, calories, average_heartrate."
 }
