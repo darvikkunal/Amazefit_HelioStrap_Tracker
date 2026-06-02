@@ -134,27 +134,10 @@ kunal-health-tracker/
 ## 📸 Sample Output
 
 ### Gmail Report
-- 9-metric card grid (Steps, Calories, HR, HRV, Sleep, Score, Workouts, Avg HR, Weight)
-- Workout session list
-- Full Gemini AI health summary
+![Gmail Report](docs/Gmail.jpeg)
 
 ### Telegram Message
-```
-🏃 Health Report — 2026-05-29
-
-👟 Steps: 3795
-🔥 Calories: 660 kcal
-❤️ Resting HR: 59 bpm
-🧠 HRV: 52.0 ms
-💤 Sleep: 9.6h (Score: 82/100)
-🏋️ Workouts: 4 sessions
-
-1. 🌅 OVERALL STATUS: You had an incredibly active day...
-2. 💪 WHAT'S GOOD: Your 9.6 hours of sleep...
-3. ⚠️ WATCH OUT: Your steps of 3795 are low...
-4. 🎯 ACTION FOR TODAY: Add short walks...
-5. 💤 SLEEP INSIGHT: Score 82/100 is excellent...
-```
+![Telegram Report](docs/telegram2.jpeg)
 
 ---
 
