@@ -1,7 +1,7 @@
 {
   "parameters": {
     "sendTo": "darvikkunal@gmail.com",
-    "subject": "=\ud83c\udfc3 Daily Health Report \u2014 {{ $json.report_date }}",
+    "subject": "=🏃 Daily Health Report — {{ $json.report_date }}",
     "message": "={{ $json.htmlEmail }}",
     "options": {}
   },
@@ -13,5 +13,5 @@
       "name": "Gmail account"
     }
   },
-  "notes": "Sends beautifully formatted HTML health report via Gmail API."
+  "notes": "Sends HTML health report via Gmail API. Subject includes report date. Recipient: darvikkunal@gmail.com. Update sendTo for different recipient."
 }
