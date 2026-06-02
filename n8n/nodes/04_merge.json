@@ -5,6 +5,6 @@
   },
   "name": "Merge",
   "type": "n8n-nodes-base.merge",
-  "typeVersion": 3,
-  "notes": "Appends wellness (Input 0) and activities (Input 1) into one list for downstream processing."
+  "typeVersion": 3.2,
+  "notes": "Appends wellness (Input 0) and activities (Input 1) into one list. Wellness at index 0, activities at indices 1..N."
 }
