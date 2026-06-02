@@ -14,5 +14,5 @@
       "name": "Intervals.icu API"
     }
   },
-  "notes": "GET yesterday's wellness data from Intervals.icu. Returns restingHR, hrv, sleepSecs, steps, etc."
+  "notes": "GET yesterday's wellness data from Intervals.icu. Returns restingHR, hrv, sleepSecs, steps, spO2, weight, atl, atlLoad, etc."
 }
