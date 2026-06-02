@@ -53,6 +53,11 @@ curl -u "1an2euw5ng67dpexsy4tuv1g7:" ...
 **Cause:** Usually infinite loop or waiting on blocked network call  
 **Fix:** Cancel, check for any `fetch`/`$http` calls, remove them
 
+### AI reasoning text appearing in output
+**When:** Telegram/email shows "Let me analyze..." or "I need to..." before actual content  
+**Cause:** OpenRouter/LLM returns reasoning text in `message.content`  
+**Fix:** The Format Email node has regex filter to strip these lines. If new patterns appear, add them to the `.replace()` chain.
+
 ### `$input.all()` returns wrong order
 **When:** Wellness item is not at index 0  
 **Cause:** Merge node inputs are connected in wrong order  
@@ -60,41 +65,56 @@ curl -u "1an2euw5ng67dpexsy4tuv1g7:" ...
 
 ---
 
-## Gemini API Issues
+## OpenRouter API Issues
 
-### `finishReason: "MAX_TOKENS"` — response cut off
-**When:** AI summary ends abruptly  
-**Cause:** `maxOutputTokens` is too low (was 1024)  
-**Fix:** Set `maxOutputTokens: 2048` in the Gemini request JSON body
+### Response is empty or truncated
+**When:** AI summary ends abruptly or is blank  
+**Cause:** `max_tokens` too low or rate limited  
+**Fix:** Set `max_tokens: 2048` in the OpenRouter request body. Check [openrouter.ai/activity](https://openrouter.ai/activity) for rate limits.
 
-### `400 Bad Request`
-**When:** Gemini API rejects request  
-**Cause:** Malformed JSON body  
-**Fix:** Check the JSON body in the HTTP Request node. Ensure `$json.prompt` resolves correctly
+### `401 Unauthorized`
+**When:** OpenRouter returns auth error  
+**Cause:** Wrong or missing API key  
+**Fix:** Verify your API key at [openrouter.ai/keys](https://openrouter.ai/keys). Ensure `Bearer` prefix is included in Authorization header.
 
-### `403 API key invalid`
-**When:** Gemini returns auth error  
-**Cause:** Wrong or expired API key  
-**Fix:** Regenerate key at [aistudio.google.com](https://aistudio.google.com)
+### `fetch is not defined` or `$http is not defined`
+**When:** Using fetch() or $http in Code node  
+**Cause:** n8n 2.22.5 task runner sandbox blocks native fetch  
+**Fix:** Don't make HTTP calls inside Code nodes. OpenRouter is called via a separate HTTP Request node.
+
+### Model unavailability
+**When:** OpenRouter returns error about model not found  
+**Cause:** `openrouter/free` routes to available free models — some may be temporarily down  
+**Fix:** The `route: "fallback"` setting handles this automatically. If persistent, try a specific model like `google/gemini-2.5-flash` or `anthropic/claude-3-5-haiku`.
+
+### OpenRouter fallback retries
+**When:** Node shows retries before success  
+**Cause:** The workflow has `retryOnFail: true` with `waitBetweenTries: 5000` (5 seconds)  
+**Fix:** This is intentional — transient failures are retried automatically.
 
 ---
 
-## Supabase Issues
+## Supabase / Postgres Issues
 
 ### Column doesn't exist error
-**When:** Supabase upsert fails  
-**Cause:** New columns (`sleep_score`, `workout_count`, etc.) not added  
+**When:** Postgres upsert fails  
+**Cause:** New columns (`sleep_score`, `workout_count`, etc.) not added to table  
 **Fix:** Run `supabase/extend_schema.sql` in Supabase SQL editor
+
+### Can't connect to Supabase via Postgres node
+**When:** Postgres node shows connection error  
+**Cause:** Wrong host, port, or password  
+**Fix:** Use Supabase connection pooler: `aws-0-xxx.pooler.supabase.com:6543` with `postgres` user and database password (not anon key). Enable SSL.
 
 ### `report_date` shows as timestamp `2026-05-29T00:00:00.000Z`
 **When:** Date appears with time component  
-**Cause:** Supabase returns DATE as ISO string  
+**Cause:** Supabase/Postgres returns DATE as ISO string  
 **Fix:** Use `.toString().substring(0, 10)` to extract just `YYYY-MM-DD`
 
 ### Duplicate key violation
 **When:** Trying to insert a date that already exists  
 **Cause:** Upsert not configured correctly  
-**Fix:** Ensure Supabase node Operation is **Insert or Update** (Upsert), and `report_date` is in **Columns to match on**
+**Fix:** Ensure Postgres node Operation is **Upsert**, and `report_date` is in **Columns to match on**
 
 ---
 
@@ -105,10 +125,20 @@ curl -u "1an2euw5ng67dpexsy4tuv1g7:" ...
 **Cause:** Haven't started the bot yet  
 **Fix:** Find your bot in Telegram, click **Start**, send a message, then refresh getUpdates
 
+### Markdown not rendering in Telegram
+**When:** Telegram shows raw `*bold*` or `_italic_` instead of formatting  
+**Cause:** `parse_mode` parameter not set  
+**Fix:** Ensure the HTTP Request node has `parse_mode: Markdown` in the query parameters
+
 ### Message gets cut off
 **When:** Telegram message ends with `...`  
 **Cause:** Using `.substring(0, 300)` in Format node  
 **Fix:** Remove the substring limit — use `${aiText}` directly
+
+### `sendQuery` vs `sendQueryParameters`
+**When:** Telegram parameters not being sent correctly  
+**Cause:** n8n version difference — some use `sendQueryParameters`, others use `sendQuery`  
+**Fix:** The live workflow uses `sendQuery: true`. If importing into older n8n, try `sendQueryParameters: true` instead.
 
 ### CallMeBot not working
 **When:** WhatsApp delivery via CallMeBot fails  
