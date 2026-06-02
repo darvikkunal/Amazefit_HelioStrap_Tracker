@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kunal's Workout Plan</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #fff;
+    color: #37352f;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .page {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 96px 96px 200px;
+  }
+  .page-icon { font-size: 60px; margin-bottom: 16px; }
+  h1 {
+    font-size: 40px;
+    font-weight: 700;
+    color: #37352f;
+    margin-bottom: 4px;
+    line-height: 1.2;
+  }
+  .subtitle {
+    color: #9b9a97;
+    font-size: 14px;
+    margin-bottom: 32px;
+  }
+
+  /* Divider */
+  hr { border: none; border-top: 1px solid #e9e9e7; margin: 24px 0; }
+
+  /* Callout */
+  .callout {
+    background: #f7f6f3;
+    border-radius: 4px;
+    padding: 12px 16px;
+    margin: 16px 0;
+    font-size: 14px;
+    color: #37352f;
+    display: flex;
+    gap: 10px;
+  }
+  .callout-icon { flex-shrink: 0; }
+
+  /* H2 */
+  h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #37352f;
+    margin: 36px 0 4px;
+  }
+
+  /* H3 */
+  h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #37352f;
+    margin: 24px 0 4px;
+  }
+
+  /* Toggle */
+  .toggle { margin: 4px 0; }
+  .toggle-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    padding: 2px 0;
+    user-select: none;
+    border-radius: 3px;
+  }
+  .toggle-header:hover { background: #f7f6f3; }
+  .toggle-arrow {
+    font-size: 10px;
+    color: #9b9a97;
+    transition: transform 0.15s;
+    width: 16px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .toggle-header.open .toggle-arrow { transform: rotate(90deg); }
+  .toggle-title {
+    font-size: 15px;
+    font-weight: 500;
+    color: #37352f;
+  }
+  .toggle-body {
+    display: none;
+    margin-left: 22px;
+    margin-top: 4px;
+  }
+  .toggle-body.open { display: block; }
+
+  /* Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    margin: 8px 0 16px;
+  }
+  th {
+    text-align: left;
+    padding: 6px 12px;
+    background: #f7f6f3;
+    color: #9b9a97;
+    font-weight: 500;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    border: 1px solid #e9e9e7;
+  }
+  td {
+    padding: 7px 12px;
+    border: 1px solid #e9e9e7;
+    vertical-align: top;
+    color: #37352f;
+  }
+  tr:hover td { background: #f7f6f3; }
+
+  /* Inline code / badges */
+  code {
+    background: #f7f6f3;
+    border-radius: 3px;
+    padding: 1px 6px;
+    font-size: 13px;
+    font-family: 'SF Mono', monospace;
+    color: #eb5757;
+  }
+
+  /* Colored text */
+  .orange { color: #d9730d; }
+  .blue   { color: #0b6e99; }
+  .green  { color: #0f7b6c; }
+  .purple { color: #6940a5; }
+  .gray   { color: #9b9a97; }
+
+  /* Bullet list */
+  ul { padding-left: 20px; margin: 4px 0; }
+  ul li { margin: 3px 0; font-size: 14px; color: #37352f; }
+
+  /* Exercise row */
+  .ex-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 3px 0;
+    font-size: 14px;
+    border-bottom: 1px solid #f1f0ee;
+  }
+  .ex-row:last-child { border-bottom: none; }
+  .ex-name { flex: 1; }
+  .ex-sets { color: #9b9a97; font-size: 13px; white-space: nowrap; }
+
+  /* Drop set block */
+  .dropset-block {
+    background: #fffbee;
+    border-left: 3px solid #dfab01;
+    border-radius: 0 4px 4px 0;
+    padding: 10px 14px;
+    margin-top: 10px;
+    font-size: 14px;
+  }
+  .dropset-block .ds-label {
+    font-weight: 600;
+    color: #c49a00;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .ds-flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+  }
+  .ds-ex { color: #37352f; }
+  .ds-sub { color: #9b9a97; font-size: 12px; }
+  .ds-arrow { color: #c49a00; }
+
+  /* Properties */
+  .props { margin: 16px 0 24px; }
+  .prop-row {
+    display: flex;
+    gap: 0;
+    padding: 5px 0;
+    border-bottom: 1px solid #f1f0ee;
+    font-size: 14px;
+  }
+  .prop-key {
+    color: #9b9a97;
+    width: 180px;
+    flex-shrink: 0;
+    font-size: 13px;
+  }
+  .prop-val { color: #37352f; }
+
+  @media (max-width: 600px) {
+    .page { padding: 48px 24px 100px; }
+    h1 { font-size: 28px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-icon">🏋️</div>
+  <h1>Kunal's Workout Plan</h1>
+  <div class="subtitle">June 2026 · PPL A/B Split · Hypertrophy Focus</div>
+
+  <div class="props">
+    <div class="prop-row"><span class="prop-key">Goal</span><span class="prop-val">Muscle building + discipline</span></div>
+    <div class="prop-row"><span class="prop-key">Split</span><span class="prop-val">Push / Pull / Legs — A/B variations</span></div>
+    <div class="prop-row"><span class="prop-key">Sets × Reps</span><span class="prop-val">3 sets · <code>12 → 10 → 8</code> progressive overload</span></div>
+    <div class="prop-row"><span class="prop-key">Drop Set</span><span class="prop-val">End of every session · targets missed subgroups</span></div>
+    <div class="prop-row"><span class="prop-key">Cardio</span><span class="prop-val">10 min post every session</span></div>
+    <div class="prop-row"><span class="prop-key">Steps Target</span><span class="prop-val">8,000 – 10,000 / day</span></div>
+    <div class="prop-row"><span class="prop-key">Session Length</span><span class="prop-val">~1.5 hrs</span></div>
+  </div>
+
+  <div class="callout">
+    <span class="callout-icon">💡</span>
+    <span>A/B logic — Monday & Thursday never repeat the same exercises. Each session hits the same muscle group from a different angle to maximize full development and avoid adaptation.</span>
+  </div>
+
+  <hr>
+
+  <!-- Weekly Schedule -->
+  <h2>📅 Weekly Schedule</h2>
+  <table>
+    <thead>
+      <tr><th>Day</th><th>Session</th><th>Focus</th></tr>
+    </thead>
+    <tbody>
+      <tr><td class="orange">Monday</td><td><strong>Push A</strong></td><td>Chest dominant</td></tr>
+      <tr><td class="blue">Tuesday</td><td><strong>Pull A</strong></td><td>Back dominant</td></tr>
+      <tr><td class="green">Wednesday</td><td><strong>Legs A</strong></td><td>Quad dominant</td></tr>
+      <tr><td class="orange">Thursday</td><td><strong>Push B</strong></td><td>Shoulder dominant</td></tr>
+      <tr><td class="blue">Friday</td><td><strong>Pull B</strong></td><td>Bicep + rear delt</td></tr>
+      <tr><td class="green">Saturday</td><td><strong>Legs B</strong></td><td>Hamstring + glute</td></tr>
+      <tr><td class="purple">Sunday</td><td><strong>Morning Run</strong></td><td>Active recovery</td></tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <!-- PUSH -->
+  <h2 class="orange">💪 Push Days — Mon & Thu</h2>
+
+  <div class="toggle">
+    <div class="toggle-header open" onclick="toggle(this)">
+      <span class="toggle-arrow">▶</span>
+      <span class="toggle-title orange">PUSH A — Monday · Chest Dominant</span>
+    </div>
+    <div class="toggle-body open">
+      <h3>Variation 1</h3>
+      <div class="ex-row"><span class="ex-name">Flat DB Press</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <div class="ex-row"><span class="ex-name">Tricep Lying One-Arm Extension</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <h3>Variation 2</h3>
+      <div class="ex-row"><span class="ex-name">Barbell OHP</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <div class="ex-row"><span class="ex-name">Lateral Raises</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <h3>Variation 3</h3>
+      <div class="ex-row"><span class="ex-name">Incline Barbell Press</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <div class="ex-row"><span class="ex-name">Tricep Cable Extension</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <div class="ex-row"><span class="ex-name">Shoulder Machine Front Press</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <div class="dropset-block">
+        <div class="ds-label">🔻 Drop Set Finisher</div>
+        <div class="ds-flow">
+          <span class="ds-ex">Pec Deck Fly</span><span class="ds-sub">(inner chest)</span>
+          <span class="ds-arrow">→</span>
+          <span class="ds-ex">Tricep Overhead Rope Ext</span><span class="ds-sub">(long head)</span>
+          <span class="ds-arrow">→</span>
+          <span class="ds-ex">Cable Face Pull</span><span class="ds-sub">(rear delt)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toggle">
+    <div class="toggle-header" onclick="toggle(this)">
+      <span class="toggle-arrow">▶</span>
+      <span class="toggle-title orange">PUSH B — Thursday · Shoulder Dominant</span>
+    </div>
+    <div class="toggle-body">
+      <h3>Variation 1</h3>
+      <div class="ex-row"><span class="ex-name">Seated DB OHP</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <div class="ex-row"><span class="ex-name">Tricep Overhead Cable Extension</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <h3>Variation 2</h3>
+      <div class="ex-row"><span class="ex-name">Cable Lateral Raises</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <div class="ex-row"><span class="ex-name">Arnold Press</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <h3>Variation 3</h3>
+      <div class="ex-row"><span class="ex-name">Decline DB Press</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <div class="ex-row"><span class="ex-name">Tricep Dips</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <div class="ex-row"><span class="ex-name">Rear Delt Fly Machine</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <div class="dropset-block">
+        <div class="ds-label">🔻 Drop Set Finisher</div>
+        <div class="ds-flow">
+          <span class="ds-ex">Incline DB Fly</span><span class="ds-sub">(upper chest)</span>
+          <span class="ds-arrow">→</span>
+          <span class="ds-ex">Tricep Pushdown Rev Grip</span><span class="ds-sub">(outer head)</span>
+          <span class="ds-arrow">→</span>
+          <span class="ds-ex">DB Front Raise</span><span class="ds-sub">(anterior delt)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- PULL -->
+  <h2 class="blue">🔙 Pull Days — Tue & Fri</h2>
+
+  <div class="toggle">
+    <div class="toggle-header open" onclick="toggle(this)">
+      <span class="toggle-arrow">▶</span>
+      <span class="toggle-title blue">PULL A — Tuesday · Back Dominant</span>
+    </div>
+    <div class="toggle-body open">
+      <h3>Variation 1</h3>
+      <div class="ex-row"><span class="ex-name">Barbell Row</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <div class="ex-row"><span class="ex-name">Barbell Curl</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <h3>Variation 2</h3>
+      <div class="ex-row"><span class="ex-name">Lat Pulldown (wide grip)</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <div class="ex-row"><span class="ex-name">Hammer Curl</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <h3>Variation 3</h3>
+      <div class="ex-row"><span class="ex-name">Seated Cable Row</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <div class="ex-row"><span class="ex-name">Incline DB Curl</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <div class="ex-row"><span class="ex-name">Machine Row</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <div class="dropset-block">
+        <div class="ds-label">🔻 Drop Set Finisher</div>
+        <div class="ds-flow">
+          <span class="ds-ex">Straight Arm Pulldown</span><span class="ds-sub">(lat stretch)</span>
+          <span class="ds-arrow">→</span>
+          <span class="ds-ex">Cable Rope Curl</span><span class="ds-sub">(peak bicep)</span>
+          <span class="ds-arrow">→</span>
+          <span class="ds-ex">Shrugs</span><span class="ds-sub">(upper trap)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toggle">
+    <div class="toggle-header" onclick="toggle(this)">
+      <span class="toggle-arrow">▶</span>
+      <span class="toggle-title blue">PULL B — Friday · Bicep + Rear Delt</span>
+    </div>
+    <div class="toggle-body">
+      <h3>Variation 1</h3>
+      <div class="ex-row"><span class="ex-name">Deadlift</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <div class="ex-row"><span class="ex-name">Concentration Curl</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <h3>Variation 2</h3>
+      <div class="ex-row"><span class="ex-name">T-Bar Row</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <div class="ex-row"><span class="ex-name">Spider Curl</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <h3>Variation 3</h3>
+      <div class="ex-row"><span class="ex-name">Single Arm DB Row</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <div class="ex-row"><span class="ex-name">Cable Rope Curl</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <div class="ex-row"><span class="ex-name">Reverse Fly DB</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <div class="dropset-block">
+        <div class="ds-label">🔻 Drop Set Finisher</div>
+        <div class="ds-flow">
+          <span class="ds-ex">Close Grip Lat Pulldown</span><span class="ds-sub">(lower lat)</span>
+          <span class="ds-arrow">→</span>
+          <span class="ds-ex">Preacher Curl</span><span class="ds-sub">(lower bicep)</span>
+          <span class="ds-arrow">→</span>
+          <span class="ds-ex">Cable Upright Row</span><span class="ds-sub">(mid trap)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- LEGS -->
+  <h2 class="green">🦵 Legs Days — Wed & Sat</h2>
+
+  <div class="toggle">
+    <div class="toggle-header open" onclick="toggle(this)">
+      <span class="toggle-arrow">▶</span>
+      <span class="toggle-title green">LEGS A — Wednesday · Quad Dominant</span>
+    </div>
+    <div class="toggle-body open">
+      <h3>Variation 1</h3>
+      <div class="ex-row"><span class="ex-name">Barbell Squat</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <div class="ex-row"><span class="ex-name">Leg Extension</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <h3>Variation 2</h3>
+      <div class="ex-row"><span class="ex-name">Hack Squat</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <div class="ex-row"><span class="ex-name">Walking Lunges</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <h3>Variation 3</h3>
+      <div class="ex-row"><span class="ex-name">Leg Press</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <div class="ex-row"><span class="ex-name">Sissy Squat</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <div class="ex-row"><span class="ex-name">Calf Raises</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <div class="dropset-block">
+        <div class="ds-label">🔻 Drop Set Finisher</div>
+        <div class="ds-flow">
+          <span class="ds-ex">Leg Curl</span><span class="ds-sub">(hamstring balance)</span>
+          <span class="ds-arrow">→</span>
+          <span class="ds-ex">Hip Adductor Machine</span><span class="ds-sub">(inner thigh)</span>
+          <span class="ds-arrow">→</span>
+          <span class="ds-ex">Seated Calf Raise</span><span class="ds-sub">(soleus)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toggle">
+    <div class="toggle-header" onclick="toggle(this)">
+      <span class="toggle-arrow">▶</span>
+      <span class="toggle-title green">LEGS B — Saturday · Hamstring + Glute</span>
+    </div>
+    <div class="toggle-body">
+      <h3>Variation 1</h3>
+      <div class="ex-row"><span class="ex-name">Romanian Deadlift</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <div class="ex-row"><span class="ex-name">Leg Curl</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <h3>Variation 2</h3>
+      <div class="ex-row"><span class="ex-name">Bulgarian Split Squat</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <div class="ex-row"><span class="ex-name">Glute Kickback Machine</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <h3>Variation 3</h3>
+      <div class="ex-row"><span class="ex-name">Sumo Squat DB</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <div class="ex-row"><span class="ex-name">Nordic Curl</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <div class="ex-row"><span class="ex-name">Seated Calf Raise</span><span class="ex-sets">3 × [12, 10, 8]</span></div>
+      <div class="dropset-block">
+        <div class="ds-label">🔻 Drop Set Finisher</div>
+        <div class="ds-flow">
+          <span class="ds-ex">Leg Extension</span><span class="ds-sub">(quad balance)</span>
+          <span class="ds-arrow">→</span>
+          <span class="ds-ex">Hip Abductor Machine</span><span class="ds-sub">(outer glute)</span>
+          <span class="ds-arrow">→</span>
+          <span class="ds-ex">Standing Calf Raise</span><span class="ds-sub">(gastrocnemius)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- Sunday -->
+  <h2 class="purple">🏃 Sunday — Morning Run</h2>
+  <div class="callout">
+    <span class="callout-icon">🌅</span>
+    <span>20–30 min easy run at conversational pace. Focus on form and breathing. Follow with 10 min dynamic stretching — hip flexors, calves, hamstrings, leg swings.</span>
+  </div>
+
+</div>
+
+<script>
+  function toggle(header) {
+    header.classList.toggle('open');
+    const body = header.nextElementSibling;
+    body.classList.toggle('open');
+  }
+</script>
+</body>
+</html>
