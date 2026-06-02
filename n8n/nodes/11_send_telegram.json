@@ -2,7 +2,7 @@
   "parameters": {
     "method": "GET",
     "url": "https://api.telegram.org/botYOUR_BOT_TOKEN/sendMessage",
-    "sendQueryParameters": true,
+    "sendQuery": true,
     "queryParameters": {
       "parameters": [
         {
@@ -12,13 +12,17 @@
         {
           "name": "text",
           "value": "={{ $json.whatsappMsg }}"
+        },
+        {
+          "name": "parse_mode",
+          "value": "Markdown"
         }
       ]
     },
     "options": {}
   },
-  "name": "Send Telegram Message",
+  "name": "Send Telegram via kunalhealth_bot",
   "type": "n8n-nodes-base.httpRequest",
   "typeVersion": 4.2,
-  "notes": "Sends text health summary to Telegram via bot API. Update YOUR_BOT_TOKEN and YOUR_CHAT_ID."
+  "notes": "Sends Markdown-formatted health summary via Telegram bot API. Uses sendQuery (not sendQueryParameters). Update YOUR_BOT_TOKEN and YOUR_CHAT_ID. parse_mode set to Markdown for bold/italic formatting."
 }
