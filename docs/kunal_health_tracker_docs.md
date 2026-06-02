@@ -501,7 +501,7 @@ Under 200 words. Speak directly to Kunal.`;
 |---|---|---|
 | Intervals.icu | HTTP Basic Auth | Username: `API_KEY`, Password: api key |
 | Supabase | Postgres | Host, port, user, password, SSL |
-| Gmail | OAuth2 | `YOUR_GMAIL_CREDENTIAL_ID` |
+| Gmail | OAuth2 | Gmail OAuth credential |
 | OpenRouter | API Key in Authorization header | Bearer token |
 | Telegram | Bot Token in URL | No n8n credential needed |
 

@@ -175,7 +175,7 @@ Built on May 30, 2026 in a single session — from idea to fully automated produ
 | Railway Service | [n8n service](https://railway.com/project/2ce5c999-9d3f-45ea-b33c-a63efe842530/service/8942f69e-cb4b-4aaa-9356-28a479bc5b93?environmentId=3d430453-b64e-4943-a800-7737bb9da326) |
 | Intervals.icu | [Health data dashboard](https://intervals.icu/?w=2026-06-01) |
 | Supabase | [Database dashboard](https://supabase.com/dashboard/project/waqlzcaizlusjnyrrxqw/sql/6dd3cf93-751f-432d-b866-8749f0b8c788) |
-| Telegram Bot API | [Bot updates](https://api.telegram.org/bot8977658056:AAGG0fKLdsLNn1ofaUyVHB865qR_bbEJz9w/getUpdates) |
+| Telegram Bot API | [Bot updates](https://api.telegram.org/botYOUR_BOT_TOKEN/getUpdates) |
 | Google AI Studio | [Rate limits (28-day)](https://aistudio.google.com/rate-limit?timeRange=last-28-days&project=gen-lang-client-0284654041) |
 | Google AI Studio | [Rate limits (1-day)](https://aistudio.google.com/rate-limit?timeRange=last-1-day) |
 | Google Cloud Console | [OAuth clients](https://console.cloud.google.com/auth/clients?project=kunal-health-tracker) |
