@@ -1,14 +1,34 @@
 {
   "parameters": {
     "method": "POST",
-    "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=YOUR_GEMINI_API_KEY",
+    "url": "https://openrouter.ai/api/v1/chat/completions",
+    "sendHeaders": true,
+    "headerParameters": {
+      "parameters": [
+        {
+          "name": "Authorization",
+          "value": "Bearer YOUR_OPENROUTER_API_KEY"
+        },
+        {
+          "name": "HTTP-Referer",
+          "value": "https://your-n8n-instance.com"
+        },
+        {
+          "name": "X-Title",
+          "value": "Kunal Health Coach"
+        }
+      ]
+    },
     "sendBody": true,
     "specifyBody": "json",
-    "jsonBody": "={{\n  contents: [\n    {\n      parts: [\n        {\n          text: $json.prompt\n        }\n      ]\n    }\n  ],\n  generationConfig: {\n    temperature: 0.7,\n    maxOutputTokens: 2048\n  }\n}}",
+    "jsonBody": "={\n  \"model\": \"openrouter/free\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"={{ $json.prompt }}\"\n    }\n  ],\n  \"max_tokens\": 2048,\n  \"transforms\": [\"middle-out\"],\n  \"route\": \"fallback\"\n}",
     "options": {}
   },
-  "name": "HTTP Request (Gemini)",
+  "name": "HTTP Request",
   "type": "n8n-nodes-base.httpRequest",
   "typeVersion": 4.4,
-  "notes": "Calls Google Gemini 2.5 Flash API to generate AI health summary from the prompt."
+  "retryOnFail": true,
+  "executeOnce": false,
+  "waitBetweenTries": 5000,
+  "notes": "Calls OpenRouter API with openrouter/free model. Routes through fallback providers. Includes Authorization header, HTTP-Referer, and X-Title."
 }
