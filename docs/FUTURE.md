@@ -112,4 +112,4 @@ If moving away from Amazfit:
 
 ---
 
-*Last updated: May 30, 2026*
+*Last updated: June 2, 2026*
