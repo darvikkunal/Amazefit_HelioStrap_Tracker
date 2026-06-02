@@ -27,7 +27,7 @@
 
 **Goal:** Build a fully automated daily health report pipeline that collects biometric data from an Amazfit Helio Strap, processes it through AI, and delivers a personalized health summary every morning.
 
-**Trigger:** Every day at **9 AM** the workflow fetches the previous day's complete data.
+**Trigger:** Every day at **6 AM** the workflow fetches the previous day's complete data.
 
 **Deliverables:**
 - 📧 HTML email report to Gmail
@@ -60,12 +60,14 @@ API call    API call
   Code Node (JS)
   Field mapping
         ↓
-    Supabase
+  Postgres → Supabase
   daily_health_metrics
         ↓
   Build Gemini Prompt
+  (with workout splits)
         ↓
-  Gemini 2.5 Flash
+  OpenRouter API
+  (openrouter/free)
         ↓
   Format Email + Telegram
         ↓              ↓
@@ -84,7 +86,7 @@ API call    API call
 | Health Platform | Intervals.icu | Data hub + REST API |
 | Automation | n8n (self-hosted) | Workflow orchestration |
 | Database | Supabase (PostgreSQL) | Historical data storage |
-| AI | Google Gemini 2.5 Flash | Health summary generation |
+| AI | OpenRouter API (openrouter/free) | Routes to best free model for health coaching |
 | Email | Gmail (OAuth) | HTML report delivery |
 | Messaging | Telegram Bot API | Daily summary delivery |
 
@@ -133,7 +135,7 @@ Returns array of individual workout sessions:
 ## 🔄 Pipeline Walkthrough {#pipeline}
 
 ### Step 1 — Schedule Trigger
-- Fires every day at **9 AM**
+- Fires every day at **6 AM**
 - Fetches data for **yesterday** (`$now.minus({days: 1})`)
 - Reason: yesterday's data is complete (sleep finished, workouts synced)
 
@@ -168,21 +170,27 @@ Returns array of individual workout sessions:
 - If not → insert
 - Preserves historical data
 
-### Step 7 — Build Gemini Prompt
-- Formats all health data into a structured prompt
-- Includes sleep quality label mapping (1=Excellent, 2=Good, etc.)
-- Cleans `report_date` to `YYYY-MM-DD` format
+### Step 7 — Build Gemini Prompt (Advanced)
+- Formats all health data into a structured 7-section AI coaching prompt
+- Includes PPL A/B workout split for each day of the week
+- HRV-based recovery flagging (FATIGUED / MODERATE / RECOVERED)
+- Sleep quality flagging (POOR / AVERAGE / GOOD)
+- Kunal's approved YouTube creators library for daily video recommendations
+- 7 sections: Yesterday Recap, Win of the Day, One Thing to Fix, Today's Targets, Watch This Today, Recovery Intelligence, Tonight's Sleep Target
 
-### Step 8 — HTTP Request (Gemini API)
-- POST to Gemini 2.5 Flash
-- `maxOutputTokens: 2048` (prevents cutoff)
-- `temperature: 0.7`
-- Returns AI-generated health summary
+### Step 8 — HTTP Request (OpenRouter API)
+- POST to OpenRouter API with `openrouter/free` model
+- `max_tokens: 2048` (prevents cutoff)
+- `route: "fallback"` — falls through providers on failure
+- `transforms: ["middle-out"]` — model router pattern
+- Headers: Authorization (Bearer), HTTP-Referer, X-Title
+- Retries on failure with 5s wait
 
-### Step 9 — Format Email + Telegram
-- Extracts AI text from Gemini response
-- Builds HTML email with 9-metric grid
-- Builds Telegram message with key stats + full AI summary
+### Step 9 — Format Email + Telegram (Advanced)
+- Extracts AI text from OpenRouter response (`choices[0].message.content`)
+- Filters out reasoning tokens (`<think>` tags, meta-text)
+- Builds color-coded HTML email with session banner, metrics grid, progress bar, AI coach brief
+- Builds Telegram message with Markdown formatting (bold, italic)
 
 ### Step 10 — Send Gmail
 - Sends HTML email to `darvikkunal@gmail.com`
@@ -190,7 +198,7 @@ Returns array of individual workout sessions:
 
 ### Step 11 — Send Telegram
 - GET to Telegram Bot API
-- `chat_id`: 7608056243
+- `chat_id`: YOUR_CHAT_ID
 - `text`: full health summary message
 
 ---
@@ -225,17 +233,22 @@ GET https://intervals.icu/api/v1/athlete/i598416/wellness?oldest=2026-05-20&newe
 GET https://intervals.icu/api/v1/athlete/i598416/activities?oldest=2026-05-29&newest=2026-05-29
 ```
 
-### Gemini API
+### OpenRouter API
 ```
-POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={API_KEY}
+POST https://openrouter.ai/api/v1/chat/completions
+
+Headers:
+  Authorization: Bearer {API_KEY}
+  HTTP-Referer: https://your-n8n-instance.com
+  X-Title: Kunal Health Coach
 
 Body:
 {
-  "contents": [{"parts": [{"text": "{prompt}"}]}],
-  "generationConfig": {
-    "temperature": 0.7,
-    "maxOutputTokens": 2048
-  }
+  "model": "openrouter/free",
+  "messages": [{"role": "user", "content": "{prompt}"}],
+  "max_tokens": 2048,
+  "transforms": ["middle-out"],
+  "route": "fallback"
 }
 ```
 
@@ -313,26 +326,26 @@ CREATE INDEX IF NOT EXISTS idx_health_date
 
 ## ⚙️ n8n Workflow {#n8n-workflow}
 
-**Workflow name:** Kunal Health Tracker  
+**Workflow name:** My workflow (deployed) / Kunal Health Tracker (template)  
 **Status:** Published / Active  
-**Schedule:** Daily at 9:00 AM  
-**n8n version:** 2.22.5 (Self Hosted)
+**Schedule:** Daily at 6:00 AM  
+**n8n version:** 2.22.5 (Self Hosted on Railway)
 
 ### Node List
 
 | # | Node | Type | Purpose |
 |---|---|---|---|
-| 1 | Schedule Trigger | scheduleTrigger | Fires at 9 AM daily |
-| 2 | Fetch Intervals Wellness | httpRequest | GET wellness data |
-| 3 | Fetch Intervals Activities | httpRequest | GET activity data |
+| 1 | Schedule Trigger (Every Hour) | scheduleTrigger | Fires at 6 AM daily |
+| 2 | Fetch Intervals Wellness | httpRequest | GET wellness data from Intervals.icu |
+| 3 | Fetch Intervals Activities | httpRequest | GET activity data from Intervals.icu |
 | 4 | Merge | merge | Append both inputs |
 | 5 | Code in JavaScript | code | Map + transform fields |
-| 6 | Save to Supabase | supabase | Upsert daily metrics |
-| 7 | Build Gemini Prompt | code | Format AI prompt |
-| 8 | HTTP Request (Gemini) | httpRequest | Call Gemini API |
-| 9 | Format Email + WhatsApp | code | Build HTML + message |
-| 10 | Send Gmail Report | gmail | Deliver HTML email |
-| 11 | Send Telegram | httpRequest | Deliver Telegram message |
+| 6 | Save to Supabase (Postgres) | postgres | Upsert daily metrics via Postgres |
+| 7 | Build Gemini Prompt | code | Format advanced 7-section AI prompt |
+| 8 | HTTP Request (OpenRouter) | httpRequest | Call OpenRouter free model |
+| 9 | Format Email + WhatsApp | code | Build color-coded HTML + Markdown message |
+| 10 | Send Gmail Report | gmail | Deliver HTML email report |
+| 11 | Send Telegram via kunalhealth_bot | httpRequest | Deliver Telegram message with Markdown |
 
 ---
 
@@ -487,15 +500,15 @@ Under 200 words. Speak directly to Kunal.`;
 | Service | Credential Type | Notes |
 |---|---|---|
 | Intervals.icu | HTTP Basic Auth | Username: `API_KEY`, Password: api key |
-| Supabase | Supabase API | Project URL + anon key |
-| Gmail | OAuth2 | `eops70FmdqVZXlEw` |
-| Gemini | API Key in URL | Passed as query param |
+| Supabase | Postgres | Host, port, user, password, SSL |
+| Gmail | OAuth2 | `YOUR_GMAIL_CREDENTIAL_ID` |
+| OpenRouter | API Key in Authorization header | Bearer token |
 | Telegram | Bot Token in URL | No n8n credential needed |
 
 ### Key IDs
 ```
 Athlete ID:     i598416
-Telegram Chat:  7608056243
+Telegram Chat:  YOUR_CHAT_ID
 Telegram Bot:   kunalhealth_bot
 ```
 
@@ -513,9 +526,9 @@ Telegram Bot:   kunalhealth_bot
 **Cause:** n8n 2.22.5 task runner sandbox blocks `fetch` and `$http`  
 **Fix:** Use separate HTTP Request nodes, not inline API calls in Code nodes
 
-### Gemini response truncated (`finishReason: MAX_TOKENS`)
-**Cause:** `maxOutputTokens` too low  
-**Fix:** Set `maxOutputTokens: 2048` in Gemini request body
+### OpenRouter response truncated
+**Cause:** `max_tokens` too low  
+**Fix:** Set `max_tokens: 2048` in OpenRouter request body
 
 ### Activities endpoint returns empty array
 **Cause:** Rest day — no workouts logged  
@@ -554,10 +567,11 @@ Telegram Bot:   kunalhealth_bot
 | May 30, 2026 | Wellness + Activities endpoints verified via curl |
 | May 30, 2026 | n8n workflow rebuilt with parallel API calls |
 | May 30, 2026 | Supabase schema extended with 8 new columns |
-| May 30, 2026 | Gemini integration working — full AI summary |
+| May 30, 2026 | OpenRouter integration working — full AI coaching summary |
 | May 30, 2026 | Gmail HTML report delivered ✅ |
 | May 30, 2026 | Telegram bot set up and delivering ✅ |
 | May 30, 2026 | Workflow published and active ✅ |
+| Jun 2, 2026 | Advanced 7-section AI prompt with PPL A/B workout splits, color-coded email template, OpenRouter fallback routing, AI reasoning filtering |
 
 ---
 
