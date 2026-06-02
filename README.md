@@ -6,13 +6,13 @@
 
 ## ✨ What It Does
 
-Every morning at **9 AM**, this system automatically:
+Every morning at **6 AM**, this system automatically:
 
 1. Fetches yesterday's complete health data from **Intervals.icu** (synced from Amazfit via Zepp)
 2. Merges wellness metrics + workout activities
-3. Stores everything in **Supabase** (PostgreSQL)
-4. Generates a personalized AI health summary using **Google Gemini 2.5 Flash**
-5. Delivers a beautifully formatted report via **Gmail** and **Telegram**
+3. Stores everything in **Supabase** (PostgreSQL via n8n Postgres node)
+4. Generates a personalized AI coaching brief using **OpenRouter API** (routes to best free model)
+5. Delivers a beautifully formatted report via **Gmail** (HTML with color-coded metrics) and **Telegram** (Markdown)
 
 No manual exports. No uploads. Just wake up and read your report.
 
@@ -40,7 +40,7 @@ Amazfit Helio Strap
         ↓ (OAuth)
    Intervals.icu
         ↓ (REST API)
-       n8n (9 AM daily)
+       n8n (6 AM daily)
     ↙              ↘
 Wellness API    Activities API
     ↘              ↙
@@ -49,12 +49,14 @@ Wellness API    Activities API
      Code Node (JS)
      Field mapping + aggregation
             ↓
-        Supabase
+   Postgres → Supabase
     daily_health_metrics
             ↓
     Build Gemini Prompt
+  (with workout splits)
             ↓
-    Gemini 2.5 Flash API
+    OpenRouter API
+  (openrouter/free model)
             ↓
    Format Email + Message
         ↓           ↓
@@ -73,7 +75,7 @@ Wellness API    Activities API
 | Health API | Intervals.icu | Reliable REST API with Zepp OAuth integration |
 | Automation | n8n (self-hosted v2.22.5) | Workflow orchestration |
 | Database | Supabase (PostgreSQL) | Historical data + upsert on date |
-| AI | Google Gemini 2.5 Flash | Personalized health insights |
+| AI | OpenRouter API (openrouter/free) | Routes to best free model for personalized health coaching |
 | Email | Gmail API (OAuth2) | HTML report delivery |
 | Messaging | Telegram Bot API | Daily summary delivery |
 
@@ -161,9 +163,9 @@ kunal-health-tracker/
 ```env
 INTERVALS_ATHLETE_ID=i598416
 INTERVALS_API_KEY=your_intervals_api_key
-GEMINI_API_KEY=your_gemini_api_key
-SUPABASE_URL=your_supabase_project_url
-SUPABASE_ANON_KEY=your_supabase_anon_key
+OPENROUTER_API_KEY=your_openrouter_api_key
+SUPABASE_HOST=your_supabase_db_host
+SUPABASE_DB_PASSWORD=your_database_password
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token
 TELEGRAM_CHAT_ID=your_telegram_chat_id
 GMAIL_RECIPIENT=your@gmail.com
