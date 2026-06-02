@@ -7,7 +7,7 @@ Every node in the Kunal Health Tracker n8n workflow, with exact configuration JS
 ## Node 1 — Schedule Trigger
 
 **Type:** `n8n-nodes-base.scheduleTrigger`  
-**Purpose:** Fires the workflow every day at 9 AM
+**Purpose:** Fires the workflow every day at **6 AM**
 
 ```json
 {
@@ -15,7 +15,7 @@ Every node in the Kunal Health Tracker n8n workflow, with exact configuration JS
     "rule": {
       "interval": [
         {
-          "triggerAtHour": 9
+          "triggerAtHour": 6
         }
       ]
     }
@@ -117,7 +117,7 @@ Every node in the Kunal Health Tracker n8n workflow, with exact configuration JS
     "type": "Workout",
     "calories": 18,
     "average_heartrate": 115,
-    "device_name": " Amazfit Helio Strap"
+    "device_name": "Amazfit Helio Strap"
   },
   {
     "id": "i152635468",
@@ -144,7 +144,7 @@ Every node in the Kunal Health Tracker n8n workflow, with exact configuration JS
   },
   "name": "Merge",
   "type": "n8n-nodes-base.merge",
-  "typeVersion": 3
+  "typeVersion": 3.2
 }
 ```
 
@@ -251,10 +251,10 @@ return [{
 
 ---
 
-## Node 6 — Save to Supabase
+## Node 6 — Save to Supabase (via Postgres)
 
-**Type:** `n8n-nodes-base.supabase`  
-**Purpose:** Upsert daily metrics into Supabase on `report_date`
+**Type:** `n8n-nodes-base.postgres`  
+**Purpose:** Upsert daily metrics into Supabase on `report_date` (uses Postgres node)
 
 ```json
 {
@@ -300,23 +300,32 @@ return [{
     }
   },
   "name": "Save to Supabase",
-  "type": "n8n-nodes-base.supabase",
-  "typeVersion": 1
+  "type": "n8n-nodes-base.postgres",
+  "typeVersion": 2.5
 }
 ```
 
+**Credential setup:** Uses a Postgres credential pointing to your Supabase project's connection string.
+
 ---
 
-## Node 7 — Build Gemini Prompt
+## Node 7 — Build Gemini Prompt (Advanced)
 
 **Type:** `n8n-nodes-base.code`  
-**Purpose:** Format all health data into a structured AI prompt
+**Purpose:** Format health data + workout plan into a 7-section AI coaching prompt
+
+The prompt includes:
+- PPL A/B workout split for each day of the week
+- HRV-based recovery flagging (FATIGUED / MODERATE / RECOVERED)
+- Sleep quality flagging (POOR / AVERAGE / GOOD)
+- Kunal's approved YouTube creators library for daily video recommendations
+- 7 structured sections: Yesterday Recap, Win of the Day, One Thing to Fix, Today's Targets, Watch This Today, Recovery Intelligence, Tonight's Sleep Target
 
 ```json
 {
   "parameters": {
     "mode": "runOnceForAllItems",
-    "jsCode": "const d = $input.first().json;\nconst reportDate = d.report_date ? d.report_date.toString().substring(0, 10) : 'N/A';\nconst sleepQualityMap = { 1: 'Excellent', 2: 'Good', 3: 'Fair', 4: 'Poor', 5: 'Very Poor' };\nconst sleepQualityLabel = d.sleep_quality ? (sleepQualityMap[d.sleep_quality] ?? d.sleep_quality) : 'N/A';\nconst prompt = `...`;\nreturn [{ json: { prompt, ...d } }];"
+    "jsCode": "// See node file n8n/nodes/07_build_gemini_prompt.json for full code"
   },
   "name": "Build Gemini Prompt",
   "type": "n8n-nodes-base.code",
@@ -324,130 +333,92 @@ return [{
 }
 ```
 
-**JavaScript (readable):**
-```javascript
-const d = $input.first().json;
-const reportDate = d.report_date
-  ? d.report_date.toString().substring(0, 10)
-  : 'N/A';
-
-const sleepQualityMap = {
-  1: 'Excellent', 2: 'Good', 3: 'Fair',
-  4: 'Poor', 5: 'Very Poor'
-};
-const sleepQualityLabel = d.sleep_quality
-  ? (sleepQualityMap[d.sleep_quality] ?? d.sleep_quality)
-  : 'N/A';
-
-const prompt = `You are Kunal's personal health coach. Analyze today's biometric data from his Amazfit Helio Strap and provide an intelligent daily health summary.
-
-📅 Date: ${reportDate}
-
-📊 TODAY'S METRICS:
-- Steps: ${d.steps ?? 'N/A'}
-- Calories burned: ${d.calories ?? 'N/A'} kcal
-- Resting Heart Rate: ${d.resting_hr ?? 'N/A'} bpm
-- Avg Workout HR: ${d.workout_avg_hr ?? 'N/A'} bpm
-- HRV (RMSSD): ${d.hrv_avg ?? 'N/A'} ms
-- SpO₂: ${d.spo2_avg ?? 'N/A'}%
-- Weight: ${d.weight ?? 'N/A'} kg
-- Training Load (ATL): ${d.atl ? Math.round(d.atl) : 'N/A'}
-
-🏋️ WORKOUTS TODAY (${d.workout_count ?? 0} sessions):
-${d.workout_names ?? 'Rest day'}
-
-😴 SLEEP LAST NIGHT:
-- Total sleep: ${d.sleep_hours ?? 'N/A'} hours
-- Sleep score: ${d.sleep_score ?? 'N/A'}/100
-- Sleep quality: ${sleepQualityLabel}
-
-Provide a friendly, concise health summary in exactly this structure:
-
-1. 🌅 OVERALL STATUS (2 sentences — how is Kunal doing today overall)
-2. 💪 WHAT'S GOOD (1-2 specific positive observations from the data)
-3. ⚠️ WATCH OUT (1 thing that needs attention, if any — be honest but kind)
-4. 🎯 ACTION FOR TODAY (1 clear, specific, actionable recommendation)
-5. 💤 SLEEP INSIGHT (brief comment on sleep quality and score)
-
-Keep total response under 200 words. Use the exact emojis shown. Be specific with numbers. Speak directly to Kunal.`;
-
-return [{ json: { prompt, ...d } }];
-```
+**Key variables in prompt:**
+- `workoutSplit` — maps each day to PPL A/B exercises with drop set finishers
+- `todayWorkout` — today's scheduled session
+- `hrvFlag` — "RECOVERED — go all out" / "MODERATE — train but pace yourself" / "FATIGUED — reduce volume"
+- `sleepFlag` — "GOOD — fully ready" / "AVERAGE — normal training ok" / "POOR — flag recovery"
+- `creatorsLibrary` — 18 approved YouTube creators organized by category
 
 ---
 
-## Node 8 — HTTP Request (Gemini API)
+## Node 8 — HTTP Request (OpenRouter API)
 
 **Type:** `n8n-nodes-base.httpRequest`  
-**Purpose:** Call Google Gemini 2.5 Flash to generate AI health summary
+**Purpose:** Call OpenRouter API (routes to best available free model)
 
 ```json
 {
   "parameters": {
     "method": "POST",
-    "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=YOUR_GEMINI_API_KEY",
+    "url": "https://openrouter.ai/api/v1/chat/completions",
+    "sendHeaders": true,
+    "headerParameters": {
+      "parameters": [
+        {
+          "name": "Authorization",
+          "value": "Bearer YOUR_OPENROUTER_API_KEY"
+        },
+        {
+          "name": "HTTP-Referer",
+          "value": "https://your-n8n-instance.com"
+        },
+        {
+          "name": "X-Title",
+          "value": "Kunal Health Coach"
+        }
+      ]
+    },
     "sendBody": true,
     "specifyBody": "json",
-    "jsonBody": "={{\n{\n  contents: [\n    {\n      parts: [\n        {\n          text: $json.prompt\n        }\n      ]\n    }\n  ],\n  generationConfig: {\n    temperature: 0.7,\n    maxOutputTokens: 2048\n  }\n}\n}}",
+    "jsonBody": "={\n  \"model\": \"openrouter/free\",\n  \"messages\": [\n    { \"role\": \"user\", \"content\": \"={{ $json.prompt }}\" }\n  ],\n  \"max_tokens\": 2048,\n  \"transforms\": [\"middle-out\"],\n  \"route\": \"fallback\"\n}",
     "options": {}
   },
   "name": "HTTP Request",
   "type": "n8n-nodes-base.httpRequest",
-  "typeVersion": 4.4
+  "typeVersion": 4.4,
+  "retryOnFail": true,
+  "waitBetweenTries": 5000
 }
 ```
 
-**Request body (readable):**
-```json
-{
-  "contents": [
-    {
-      "parts": [
-        {
-          "text": "{{ $json.prompt }}"
-        }
-      ]
-    }
-  ],
-  "generationConfig": {
-    "temperature": 0.7,
-    "maxOutputTokens": 2048
-  }
-}
-```
+**Request headers:**
+- `Authorization: Bearer {key}` — OpenRouter API key
+- `HTTP-Referer` — your n8n instance URL (for OpenRouter rankings)
+- `X-Title: Kunal Health Coach` — identifies your app in OpenRouter logs
+
+**Request body features:**
+- `model: openrouter/free` — uses the best available free model
+- `transforms: ["middle-out"]` — model router pattern
+- `route: "fallback"` — falls through providers on failure
+- `max_tokens: 2048` — prevents response cutoff
 
 **Expected output:**
 ```json
 {
-  "candidates": [
+  "choices": [
     {
-      "content": {
-        "parts": [
-          {
-            "text": "Hello Kunal! Here's your daily health summary:\n\n1. 🌅 OVERALL STATUS..."
-          }
-        ]
-      },
-      "finishReason": "STOP"
+      "message": {
+        "content": "1. 🌅 YESTERDAY RECAP...",
+        "reasoning": "..."
+      }
     }
   ]
 }
 ```
 
-> ⚠️ If `finishReason` is `MAX_TOKENS` instead of `STOP`, increase `maxOutputTokens` to `4096`.
-
 ---
 
-## Node 9 — Format Email + WhatsApp Message
+## Node 9 — Format Email + WhatsApp Message (Advanced)
 
 **Type:** `n8n-nodes-base.code`  
-**Purpose:** Extract Gemini text, build HTML email and Telegram message
+**Purpose:** Extract AI text, filter reasoning tokens, build HTML email and Telegram message
 
 ```json
 {
   "parameters": {
     "mode": "runOnceForAllItems",
-    "jsCode": "// See readable version below"
+    "jsCode": "// See node file n8n/nodes/09_format_email_telegram.json for full code"
   },
   "name": "Format Email + WhatsApp Message",
   "type": "n8n-nodes-base.code",
@@ -455,87 +426,28 @@ return [{ json: { prompt, ...d } }];
 }
 ```
 
-**JavaScript (readable):**
-```javascript
-const geminiRaw = $input.first().json;
-const prevData = $('Build Gemini Prompt').first().json;
+**AI Text Extraction:**
+- Reads `choices[0].message.content` (OpenRouter format)
+- Falls back to `choices[0].message.reasoning` if content is empty/short
+- Strips `<think>` reasoning tags
+- Removes meta-text lines (e.g. "Let me draft...", "Section 1...", "Must include...")
+- Normalizes excessive newlines
 
-const aiText = geminiRaw?.candidates?.[0]?.content?.parts?.[0]?.text
-  ?? 'No summary available';
-const d = prevData;
-const reportDate = d.report_date
-  ? d.report_date.toString().substring(0, 10)
-  : 'N/A';
+**HTML Email Features:**
+- Dark header with "Kunal's Daily Health Brief" branding
+- Today's session banner (e.g. "Monday → Chest & Triceps")
+- Color-coded metrics grid (green/amber/red based on targets):
+  - Steps (goal: 9,000) — red <5k, amber 5k-8k, green >8k
+  - Calories, Resting HR, HRV (color-coded), Sleep hours, Sleep score, Workout HR, Weight, Sessions
+- Steps progress bar toward 9,000 goal
+- Workout names banner (if applicable)
+- AI coach brief with formatted sections
+- Pipeline footer
 
-const sleepQualityMap = {
-  1: 'Excellent', 2: 'Good', 3: 'Fair',
-  4: 'Poor', 5: 'Very Poor'
-};
-const sleepQualityLabel = d.sleep_quality
-  ? (sleepQualityMap[d.sleep_quality] ?? d.sleep_quality)
-  : '—';
-
-const htmlEmail = `<!DOCTYPE html><html><body style="font-family:-apple-system,Arial,sans-serif;background:#f5f5f5;padding:20px;margin:0">
-<div style="max-width:600px;margin:0 auto;background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1)">
-  <div style="background:linear-gradient(135deg,#1a1a2e,#16213e);color:white;padding:24px;text-align:center">
-    <h2 style="margin:0;font-size:22px">🏃 Daily Health Report</h2>
-    <p style="margin:4px 0 0;opacity:.7;font-size:13px">${reportDate} · Helio → Zepp → Intervals.icu → Gemini</p>
-  </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:20px">
-    <div style="background:#f8f9fa;border-radius:8px;padding:12px;text-align:center">
-      <div style="font-size:22px;font-weight:700;color:#1a1a2e">${d.steps ?? '—'}</div>
-      <div style="font-size:10px;color:#888;margin-top:3px">STEPS</div>
-    </div>
-    <div style="background:#f8f9fa;border-radius:8px;padding:12px;text-align:center">
-      <div style="font-size:22px;font-weight:700;color:#1a1a2e">${d.calories ?? '—'}</div>
-      <div style="font-size:10px;color:#888;margin-top:3px">CALORIES</div>
-    </div>
-    <div style="background:#f8f9fa;border-radius:8px;padding:12px;text-align:center">
-      <div style="font-size:22px;font-weight:700;color:#e63946">${d.resting_hr ?? '—'}</div>
-      <div style="font-size:10px;color:#888;margin-top:3px">RESTING HR</div>
-    </div>
-    <div style="background:#f8f9fa;border-radius:8px;padding:12px;text-align:center">
-      <div style="font-size:22px;font-weight:700;color:#4361ee">${d.hrv_avg ?? '—'}</div>
-      <div style="font-size:10px;color:#888;margin-top:3px">HRV (ms)</div>
-    </div>
-    <div style="background:#f8f9fa;border-radius:8px;padding:12px;text-align:center">
-      <div style="font-size:22px;font-weight:700;color:#2a9d8f">${d.sleep_hours ?? '—'}</div>
-      <div style="font-size:10px;color:#888;margin-top:3px">SLEEP HRS</div>
-    </div>
-    <div style="background:#f8f9fa;border-radius:8px;padding:12px;text-align:center">
-      <div style="font-size:22px;font-weight:700;color:#f4a261">${d.sleep_score ?? '—'}</div>
-      <div style="font-size:10px;color:#888;margin-top:3px">SLEEP SCORE</div>
-    </div>
-    <div style="background:#f8f9fa;border-radius:8px;padding:12px;text-align:center">
-      <div style="font-size:22px;font-weight:700;color:#1a1a2e">${d.workout_count ?? 0}</div>
-      <div style="font-size:10px;color:#888;margin-top:3px">WORKOUTS</div>
-    </div>
-    <div style="background:#f8f9fa;border-radius:8px;padding:12px;text-align:center">
-      <div style="font-size:22px;font-weight:700;color:#1a1a2e">${d.workout_avg_hr ?? '—'}</div>
-      <div style="font-size:10px;color:#888;margin-top:3px">AVG HR</div>
-    </div>
-    <div style="background:#f8f9fa;border-radius:8px;padding:12px;text-align:center">
-      <div style="font-size:22px;font-weight:700;color:#1a1a2e">${d.weight ?? '—'}</div>
-      <div style="font-size:10px;color:#888;margin-top:3px">WEIGHT kg</div>
-    </div>
-  </div>
-  ${d.workout_names ? `<div style="padding:0 20px 12px">
-    <div style="background:#fff8e7;border-left:3px solid #f4a261;padding:10px 14px;border-radius:0 6px 6px 0;font-size:13px;color:#555">
-      🏋️ <strong>Workouts:</strong> ${d.workout_names}
-    </div>
-  </div>` : ''}
-  <div style="padding:0 20px 20px">
-    <div style="background:#f0f4ff;border-left:4px solid #4361ee;padding:16px;border-radius:0 8px 8px 0;font-size:14px;line-height:1.7;color:#333;white-space:pre-wrap">${aiText}</div>
-  </div>
-  <div style="background:#f8f9fa;padding:12px;text-align:center;font-size:11px;color:#aaa">
-    Amazfit Helio Strap → Zepp → Intervals.icu → n8n → Gemini → You
-  </div>
-</div></body></html>`;
-
-const whatsappMsg = `🏃 Health Report — ${reportDate}\n\n👟 Steps: ${d.steps ?? 'N/A'}\n🔥 Calories: ${d.calories ?? 'N/A'} kcal\n❤️ Resting HR: ${d.resting_hr ?? 'N/A'} bpm\n🧠 HRV: ${d.hrv_avg ?? 'N/A'} ms\n💤 Sleep: ${d.sleep_hours ?? 'N/A'}h (Score: ${d.sleep_score ?? 'N/A'}/100)\n🏋️ Workouts: ${d.workout_count ?? 0} sessions\n\n${aiText}`;
-
-return [{ json: { htmlEmail, whatsappMsg, report_date: reportDate } }];
-```
+**Telegram Message Features:**
+- Markdown-formatted (bold headers, italic footer)
+- Yesterday's numbers with emoji indicators (✅⚠️❌)
+- Full AI coach text (stripped of markdown formatting for safety)
 
 ---
 
@@ -568,23 +480,27 @@ return [{ json: { htmlEmail, whatsappMsg, report_date: reportDate } }];
 ## Node 11 — Send Telegram
 
 **Type:** `n8n-nodes-base.httpRequest`  
-**Purpose:** Send health summary to Telegram bot
+**Purpose:** Send health summary to Telegram bot with Markdown formatting
 
 ```json
 {
   "parameters": {
     "method": "GET",
-    "url": "https://api.telegram.org/bot8977658056:AAGG0fKLdsLNn1ofaUyVHB865qR_bbEJz9w/sendMessage",
-    "sendQueryParameters": true,
+    "url": "https://api.telegram.org/botYOUR_BOT_TOKEN/sendMessage",
+    "sendQuery": true,
     "queryParameters": {
       "parameters": [
         {
           "name": "chat_id",
-          "value": "7608056243"
+          "value": "YOUR_CHAT_ID"
         },
         {
           "name": "text",
           "value": "={{ $json.whatsappMsg }}"
+        },
+        {
+          "name": "parse_mode",
+          "value": "Markdown"
         }
       ]
     },
@@ -603,10 +519,10 @@ return [{ json: { htmlEmail, whatsappMsg, report_date: reportDate } }];
   "result": {
     "message_id": 4,
     "chat": {
-      "id": 7608056243,
+      "id": "YOUR_CHAT_ID",
       "first_name": "Kunal"
     },
-    "text": "🏃 Health Report — 2026-05-29..."
+    "text": "💪 *Kunal's Health Brief — 2026-05-29*..."
   }
 }
 ```
@@ -616,19 +532,36 @@ return [{ json: { htmlEmail, whatsappMsg, report_date: reportDate } }];
 ## Connection Map
 
 ```
-Schedule Trigger
+Schedule Trigger (6 AM)
     ├──→ Fetch Intervals Wellness  → Merge (Input 0)
     └──→ Fetch Intervals Activities → Merge (Input 1)
                                         ↓
                                   Code in JavaScript
                                         ↓
-                                  Save to Supabase
+                              Save to Supabase (Postgres)
                                         ↓
-                                  Build Gemini Prompt
+                              Build Gemini Prompt (Advanced)
                                         ↓
-                                  HTTP Request (Gemini)
+                              HTTP Request (OpenRouter API)
                                         ↓
-                                  Format Email + WhatsApp
-                                     ↙        ↘
+                              Format Email + WhatsApp (Advanced)
+                                   ↙        ↘
                             Send Gmail    Send Telegram
 ```
+
+---
+
+## Key Differences from Earlier Version
+
+| Aspect | Previous | Current (Live) |
+|---|---|---|
+| Schedule | 9 AM | **6 AM** |
+| DB Node | Supabase | **Postgres** (connecting to Supabase) |
+| AI Provider | Gemini 2.5 Flash | **OpenRouter** (openrouter/free) |
+| AI Response Path | `candidates[0].content.parts[0].text` | **`choices[0].message.content`** |
+| Prompt | Simple 5-section | **Advanced 7-section with workout splits** |
+| Email Template | 9-metric grid | **Color-coded grid + session banner + progress bar** |
+| Telegram Params | `sendQueryParameters` | **`sendQuery`** |
+| Telegram Mode | None | **`parse_mode: Markdown`** |
+| Reasoning Filter | None | **Strips `<think>` tags + meta-text** |
+| Retry on Fail | None | **Enabled with 5s wait** |
