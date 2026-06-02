@@ -2,10 +2,12 @@
   "parameters": {
     "operation": "upsert",
     "schema": {
+      "__rl": true,
       "mode": "list",
       "value": "public"
     },
     "table": {
+      "__rl": true,
       "mode": "list",
       "value": "daily_health_metrics"
     },
@@ -37,11 +39,62 @@
         "atl":            "={{ $json.atl }}",
         "atl_load":       "={{ $json.atl_load }}"
       },
-      "matchingColumns": ["report_date"]
-    }
+      "matchingColumns": [
+        "report_date"
+      ],
+      "schema": [
+        {
+          "id": "id",
+          "displayName": "id",
+          "required": false,
+          "defaultMatch": true,
+          "display": true,
+          "type": "number",
+          "canBeUsedToMatch": true,
+          "removed": true
+        },
+        {
+          "id": "report_date",
+          "displayName": "report_date",
+          "required": true,
+          "defaultMatch": false,
+          "display": true,
+          "type": "dateTime",
+          "canBeUsedToMatch": true
+        },
+        { "id": "steps", "displayName": "steps", "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": false },
+        { "id": "distance_km", "displayName": "distance_km", "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": false },
+        { "id": "calories", "displayName": "calories", "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": false },
+        { "id": "resting_hr", "displayName": "resting_hr", "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": false },
+        { "id": "hrv_avg", "displayName": "hrv_avg", "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": false },
+        { "id": "hrv_min", "displayName": "hrv_min", "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": false },
+        { "id": "hrv_max", "displayName": "hrv_max", "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": false },
+        { "id": "spo2_avg", "displayName": "spo2_avg", "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": false },
+        { "id": "spo2_min", "displayName": "spo2_min", "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": false },
+        { "id": "resp_rate", "displayName": "resp_rate", "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": false },
+        { "id": "sleep_hours", "displayName": "sleep_hours", "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": false },
+        { "id": "sleep_deep_min", "displayName": "sleep_deep_min", "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": false },
+        { "id": "sleep_rem_min", "displayName": "sleep_rem_min", "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": false },
+        { "id": "sleep_light_min", "displayName": "sleep_light_min", "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": false },
+        { "id": "sleep_awake_min", "displayName": "sleep_awake_min", "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": false },
+        { "id": "created_at", "displayName": "created_at", "required": false, "defaultMatch": false, "display": true, "type": "dateTime", "canBeUsedToMatch": false, "removed": false },
+        { "id": "updated_at", "displayName": "updated_at", "required": false, "defaultMatch": false, "display": true, "type": "dateTime", "canBeUsedToMatch": false, "removed": false },
+        { "id": "sleep_score", "displayName": "sleep_score", "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": false, "removed": false },
+        { "id": "sleep_quality", "displayName": "sleep_quality", "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": false, "removed": false },
+        { "id": "weight", "displayName": "weight", "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": false, "removed": false },
+        { "id": "workout_count", "displayName": "workout_count", "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": false, "removed": false },
+        { "id": "workout_names", "displayName": "workout_names", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false, "removed": false },
+        { "id": "workout_avg_hr", "displayName": "workout_avg_hr", "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": false, "removed": false },
+        { "id": "atl", "displayName": "atl", "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": false, "removed": false },
+        { "id": "atl_load", "displayName": "atl_load", "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": false, "removed": false }
+      ],
+      "attemptToConvertTypes": false,
+      "convertFieldsToString": false
+    },
+    "options": {}
   },
   "name": "Save to Supabase",
-  "type": "n8n-nodes-base.supabase",
-  "typeVersion": 1,
-  "notes": "Upserts daily metrics into Supabase daily_health_metrics table, matched on report_date."
+  "type": "n8n-nodes-base.postgres",
+  "typeVersion": 2.5,
+  "notes": "Upserts daily metrics into Supabase (via Postgres node) daily_health_metrics table. Matches on report_date. Uses Postgres credential."
 }
