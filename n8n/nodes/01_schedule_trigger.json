@@ -3,7 +3,7 @@
     "rule": {
       "interval": [
         {
-          "triggerAtHour": 9
+          "triggerAtHour": 6
         }
       ]
     }
@@ -11,5 +11,5 @@
   "name": "Schedule Trigger (Every Hour)",
   "type": "n8n-nodes-base.scheduleTrigger",
   "typeVersion": 1.1,
-  "notes": "Fires at 9 AM daily. Fetches yesterday's complete data."
+  "notes": "Fires at 6 AM daily. Fetches yesterday's complete data for the morning health report."
 }
